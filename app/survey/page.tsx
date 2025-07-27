@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, User, Scale, Droplets, Zap, AlertCircle, Coffee, Target } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, Droplets, Zap, AlertCircle, Coffee, Target } from 'lucide-react';
 
 interface SurveyData {
   weight: number;
@@ -66,7 +66,7 @@ export default function NutritionSurvey() {
       content: (
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">What's your name?</label>
+            <label className="block text-sm font-medium mb-2">What&apos;s your name?</label>
             <input
               type="text"
               value={surveyData.name}
@@ -105,7 +105,7 @@ export default function NutritionSurvey() {
           ].map(option => (
             <button
               key={option.value}
-              onClick={() => setSurveyData(prev => ({ ...prev, sweatRate: option.value as any }))}
+              onClick={() => setSurveyData(prev => ({ ...prev, sweatRate: option.value as 'light' | 'moderate' | 'heavy' }))}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${
                 surveyData.sweatRate === option.value
                   ? 'bg-blue-600 border-blue-400 text-white'
@@ -122,7 +122,7 @@ export default function NutritionSurvey() {
 
     // Step 3: Ride Intensity
     {
-      title: "What's Your Typical Ride Intensity?",
+      title: "What&apos;s Your Typical Ride Intensity?",
       icon: <Zap className="w-8 h-8 text-yellow-400" />,
       content: (
         <div className="space-y-4">
@@ -135,7 +135,7 @@ export default function NutritionSurvey() {
           ].map(option => (
             <button
               key={option.value}
-              onClick={() => setSurveyData(prev => ({ ...prev, intensity: option.value as any }))}
+              onClick={() => setSurveyData(prev => ({ ...prev, intensity: option.value as 'easy' | 'moderate' | 'hard' | 'mixed' }))}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${
                 surveyData.intensity === option.value
                   ? 'bg-yellow-600 border-yellow-400 text-white'
@@ -152,7 +152,7 @@ export default function NutritionSurvey() {
 
     // Step 4: GI Sensitivity
     {
-      title: "How's Your Stomach During Rides?",
+      title: "How&apos;s Your Stomach During Rides?",
       icon: <AlertCircle className="w-8 h-8 text-green-400" />,
       content: (
         <div className="space-y-4">
@@ -164,7 +164,7 @@ export default function NutritionSurvey() {
           ].map(option => (
             <button
               key={option.value}
-              onClick={() => setSurveyData(prev => ({ ...prev, giSensitivity: option.value as any }))}
+              onClick={() => setSurveyData(prev => ({ ...prev, giSensitivity: option.value as 'sensitive' | 'normal' | 'tolerant' }))}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${
                 surveyData.giSensitivity === option.value
                   ? 'bg-green-600 border-green-400 text-white'
@@ -245,7 +245,7 @@ export default function NutritionSurvey() {
 
     // Step 7: Experience Level
     {
-      title: "What's Your Cycling Experience?",
+      title: "What&apos;s Your Cycling Experience?",
       icon: <Target className="w-8 h-8 text-purple-400" />,
       content: (
         <div className="space-y-4">
@@ -257,7 +257,7 @@ export default function NutritionSurvey() {
           ].map(option => (
             <button
               key={option.value}
-              onClick={() => setSurveyData(prev => ({ ...prev, experienceLevel: option.value as any }))}
+              onClick={() => setSurveyData(prev => ({ ...prev, experienceLevel: option.value as 'beginner' | 'intermediate' | 'advanced' }))}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${
                 surveyData.experienceLevel === option.value
                   ? 'bg-purple-600 border-purple-400 text-white'

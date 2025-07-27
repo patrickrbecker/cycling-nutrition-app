@@ -159,7 +159,7 @@ export default function CyclingNutritionApp() {
       setCurrentTemp(Math.round(data.main.temp));
       setCurrentHumidity(data.main.humidity);
       setWeatherError('');
-    } catch (error) {
+    } catch {
       setWeatherError('Unable to fetch weather data');
       setCurrentTemp(75); // fallback temperature
       setCurrentHumidity(50); // fallback humidity
@@ -171,7 +171,7 @@ export default function CyclingNutritionApp() {
   // Update schedule when ride time/miles or temperature changes
   useEffect(() => {
     setFuelSchedule(generateSchedule(getEffectiveRideTime()));
-  }, [rideTime, rideMiles, rideType, currentTemp]);
+  }, [rideTime, rideMiles, rideType, currentTemp, nutritionProfile]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
