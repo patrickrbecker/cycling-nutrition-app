@@ -12,11 +12,23 @@ interface FuelAlert {
 
 export default function CyclingNutritionApp() {
   const [rideTime, setRideTime] = useState<number>(60); // minutes
+  const [rideMiles, setRideMiles] = useState<number>(20); // miles
+  const [rideType, setRideType] = useState<'time' | 'miles'>('time');
   const [isRiding, setIsRiding] = useState(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [fuelSchedule, setFuelSchedule] = useState<FuelAlert[]>([]);
   const [completedAlerts, setCompletedAlerts] = useState<Set<number>>(new Set());
   const [currentTemp, setCurrentTemp] = useState<number>(75); // Fahrenheit
+
+  // Convert miles to estimated time (assuming 20mph average)
+  const milesToTime = (miles: number) => {
+    return Math.round((miles / 20) * 60); // 20mph = 3 minutes per mile
+  };
+
+  // Get effective ride duration for scheduling
+  const getEffectiveRideTime = () => {
+    return rideType === 'time' ? rideTime : milesToTime(rideMiles);
+  };
 
   // Generate fueling schedule based on your proven protocol
   const generateSchedule = (durationMinutes: number) => {
@@ -58,10 +70,10 @@ export default function CyclingNutritionApp() {
     return () => clearInterval(interval);
   }, [isRiding]);
 
-  // Update schedule when ride time or temperature changes
+  // Update schedule when ride time/miles or temperature changes
   useEffect(() => {
-    setFuelSchedule(generateSchedule(rideTime));
-  }, [rideTime, currentTemp]);
+    setFuelSchedule(generateSchedule(getEffectiveRideTime()));
+  }, [rideTime, rideMiles, rideType, currentTemp]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -99,7 +111,7 @@ export default function CyclingNutritionApp() {
 
   const currentAlert = getCurrentAlert();
   const nextAlert = getNextAlert();
-  const progressPercent = (elapsedTime / rideTime) * 100;
+  const progressPercent = (elapsedTime / getEffectiveRideTime()) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
@@ -122,19 +134,70 @@ export default function CyclingNutritionApp() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Expected Ride Time
+                    Ride Planning Method
                   </label>
-                  <select 
-                    value={rideTime} 
-                    onChange={(e) => setRideTime(Number(e.target.value))}
-                    className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
-                  >
-                    <option value={60}>1 hour (20 miles)</option>
-                    <option value={120}>2 hours (40 miles)</option>
-                    <option value={150}>2.5 hours (50 miles)</option>
-                    <option value={180}>3 hours (60 miles)</option>
-                    <option value={240}>4 hours (80 miles)</option>
-                  </select>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setRideType('time')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideType === 'time' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      By Time
+                    </button>
+                    <button
+                      onClick={() => setRideType('miles')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideType === 'miles' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      By Miles
+                    </button>
+                  </div>
+                  
+                  {rideType === 'time' ? (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Expected Ride Time
+                      </label>
+                      <select 
+                        value={rideTime} 
+                        onChange={(e) => setRideTime(Number(e.target.value))}
+                        className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
+                      >
+                        <option value={60}>1 hour</option>
+                        <option value={90}>1.5 hours</option>
+                        <option value={120}>2 hours</option>
+                        <option value={150}>2.5 hours</option>
+                        <option value={180}>3 hours</option>
+                        <option value={240}>4 hours</option>
+                        <option value={300}>5 hours</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Expected Distance (miles)
+                      </label>
+                      <input 
+                        type="number" 
+                        value={rideMiles}
+                        onChange={(e) => setRideMiles(Number(e.target.value))}
+                        className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
+                        min="5" 
+                        max="200"
+                        step="5"
+                        placeholder="Enter miles"
+                      />
+                      <p className="text-sm text-blue-200 mt-1">
+                        Estimated time: {formatTime(milesToTime(rideMiles))} (at 20mph avg)
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -224,7 +287,10 @@ export default function CyclingNutritionApp() {
                 <h2 className="text-2xl font-semibold">Ride Progress</h2>
                 <div className="text-right">
                   <div className="text-3xl font-mono font-bold">{formatTime(elapsedTime)}</div>
-                  <div className="text-sm text-blue-200">of {formatTime(rideTime)}</div>
+                  <div className="text-sm text-blue-200">
+                    of {formatTime(getEffectiveRideTime())} 
+                    {rideType === 'miles' && ` (${rideMiles} miles)`}
+                  </div>
                 </div>
               </div>
               <div className="w-full bg-white/20 rounded-full h-4">
