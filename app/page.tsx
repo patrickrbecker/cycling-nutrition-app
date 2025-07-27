@@ -19,6 +19,7 @@ export default function CyclingNutritionApp() {
   const [fuelSchedule, setFuelSchedule] = useState<FuelAlert[]>([]);
   const [completedAlerts, setCompletedAlerts] = useState<Set<number>>(new Set());
   const [currentTemp, setCurrentTemp] = useState<number>(75); // Fahrenheit
+  const [currentHumidity, setCurrentHumidity] = useState<number>(50); // Percentage
   const [zipCode, setZipCode] = useState<string>('');
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
@@ -93,10 +94,12 @@ export default function CyclingNutritionApp() {
       
       const data = await response.json();
       setCurrentTemp(Math.round(data.main.temp));
+      setCurrentHumidity(data.main.humidity);
       setWeatherError('');
     } catch (error) {
       setWeatherError('Unable to fetch weather data');
       setCurrentTemp(75); // fallback temperature
+      setCurrentHumidity(50); // fallback humidity
     } finally {
       setIsLoadingWeather(false);
     }
@@ -258,7 +261,7 @@ export default function CyclingNutritionApp() {
                   )}
                   {currentTemp && (
                     <p className="text-green-300 text-sm mt-1">
-                      Current temperature: {currentTemp}°F
+                      Current temperature: {currentTemp}°F, {currentHumidity}% humidity
                       {currentTemp > 80 && ' - Hot day, electrolyte alerts enabled'}
                     </p>
                   )}
