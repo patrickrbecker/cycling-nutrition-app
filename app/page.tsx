@@ -10,6 +10,17 @@ interface FuelAlert {
   priority: 'normal' | 'critical';
 }
 
+interface NutritionProfile {
+  weight: number;
+  sweatRate: 'light' | 'moderate' | 'heavy';
+  intensity: 'easy' | 'moderate' | 'hard' | 'mixed';
+  giSensitivity: 'sensitive' | 'normal' | 'tolerant';
+  previousIssues: string[];
+  preferredFuels: string[];
+  experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+  name: string;
+}
+
 export default function CyclingNutritionApp() {
   const [rideTime, setRideTime] = useState<number>(60); // minutes
   const [rideMiles, setRideMiles] = useState<number>(20); // miles
@@ -23,6 +34,7 @@ export default function CyclingNutritionApp() {
   const [zipCode, setZipCode] = useState<string>('');
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
+  const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
@@ -34,27 +46,78 @@ export default function CyclingNutritionApp() {
     return rideType === 'time' ? rideTime : milesToTime(rideMiles);
   };
 
-  // Generate fueling schedule based on your proven protocol
+  // Load nutrition profile on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('nutritionProfile');
+    if (saved) {
+      setNutritionProfile(JSON.parse(saved));
+    }
+  }, []);
+
+  // Generate personalized fueling schedule
   const generateSchedule = (durationMinutes: number) => {
     const schedule: FuelAlert[] = [];
     
-    // Carb schedule: every 25 minutes starting at 20 minutes
-    for (let time = 20; time < durationMinutes; time += 25) {
+    // Personalized carb timing based on profile
+    let carbInterval = 25; // default
+    let startTime = 20; // default
+    let carbAmount = '10-15g carbs';
+
+    if (nutritionProfile) {
+      // Adjust based on GI sensitivity
+      if (nutritionProfile.giSensitivity === 'sensitive') {
+        carbInterval = 30; // less frequent for sensitive stomachs
+        startTime = 15; // start earlier with smaller amounts
+        carbAmount = '8-12g carbs';
+      } else if (nutritionProfile.giSensitivity === 'tolerant') {
+        carbInterval = 20; // more frequent for iron stomachs
+        carbAmount = '15-20g carbs';
+      }
+
+      // Adjust based on intensity
+      if (nutritionProfile.intensity === 'hard') {
+        carbInterval = Math.max(15, carbInterval - 5); // more frequent for high intensity
+      } else if (nutritionProfile.intensity === 'easy') {
+        carbInterval += 10; // less frequent for easy rides
+      }
+    }
+
+    // Generate carb schedule
+    for (let time = startTime; time < durationMinutes; time += carbInterval) {
+      const fuelType = nutritionProfile?.preferredFuels.length > 0 
+        ? `(${nutritionProfile.preferredFuels[0].toLowerCase()})` 
+        : '(½ gel or 8oz sports drink)';
+      
       schedule.push({
         time,
         type: 'carbs',
-        amount: '10-15g carbs (½ gel or 8oz sports drink)',
+        amount: `${carbAmount} ${fuelType}`,
         priority: 'normal'
       });
     }
 
-    // Electrolyte schedule: every 60 minutes if temp > 80°F
-    if (currentTemp > 80) {
-      for (let time = 70; time < durationMinutes; time += 60) {
+    // Enhanced electrolyte schedule based on sweat rate and temperature
+    const needsElectrolytes = currentTemp > 80 || 
+      (nutritionProfile?.sweatRate === 'heavy') ||
+      (nutritionProfile?.sweatRate === 'moderate' && currentTemp > 75);
+
+    if (needsElectrolytes) {
+      let electrolyteInterval = 60;
+      let sodiumAmount = '200-400mg sodium';
+
+      if (nutritionProfile?.sweatRate === 'heavy') {
+        electrolyteInterval = 45;
+        sodiumAmount = '300-500mg sodium';
+      } else if (nutritionProfile?.sweatRate === 'light') {
+        electrolyteInterval = 90;
+        sodiumAmount = '150-300mg sodium';
+      }
+
+      for (let time = 45; time < durationMinutes; time += electrolyteInterval) {
         schedule.push({
           time,
           type: 'electrolytes',
-          amount: '200-400mg sodium (electrolyte tab/chew)',
+          amount: `${sodiumAmount} (electrolyte tab/chew)`,
           priority: 'normal'
         });
       }
@@ -158,6 +221,26 @@ export default function CyclingNutritionApp() {
             Cycling Fuel Planner
           </h1>
           <p className="text-blue-200">Smart nutrition timing for peak performance</p>
+          {nutritionProfile ? (
+            <div className="mt-4 p-4 bg-green-500/20 rounded-lg border border-green-500/30">
+              <p className="text-green-300 font-medium">
+                Welcome back, {nutritionProfile.name}! Your personalized nutrition plan is ready.
+              </p>
+              <p className="text-sm text-green-200 mt-1">
+                Profile: {nutritionProfile.sweatRate} sweater, {nutritionProfile.intensity} intensity, {nutritionProfile.giSensitivity} stomach
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <a 
+                href="/survey"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Create Personalized Profile
+              </a>
+            </div>
+          )}
         </div>
 
         {!isRiding ? (
