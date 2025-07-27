@@ -61,7 +61,7 @@ export default function NutritionSurvey() {
   const steps = [
     // Step 1: Personal Info
     {
-      title: "Let's Get Started",
+      title: "Let&apos;s Get Started",
       icon: <User className="w-8 h-8 text-blue-400" />,
       content: (
         <div className="space-y-6">
@@ -185,7 +185,7 @@ export default function NutritionSurvey() {
       icon: <AlertCircle className="w-8 h-8 text-red-400" />,
       content: (
         <div className="space-y-4">
-          <p className="text-blue-200 mb-6">Select any issues you've experienced (optional)</p>
+          <p className="text-blue-200 mb-6">Select any issues you&apos;ve experienced (optional)</p>
           {[
             'Bonking/hitting the wall',
             'Nausea during rides',

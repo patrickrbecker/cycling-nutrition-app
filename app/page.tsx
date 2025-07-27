@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle } from 'lucide-react';
 
 interface FuelAlert {
@@ -42,9 +42,9 @@ export default function CyclingNutritionApp() {
   };
 
   // Get effective ride duration for scheduling
-  const getEffectiveRideTime = () => {
+  const getEffectiveRideTime = useCallback(() => {
     return rideType === 'time' ? rideTime : milesToTime(rideMiles);
-  };
+  }, [rideType, rideTime, rideMiles]);
 
   // Load nutrition profile on mount
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function CyclingNutritionApp() {
   }, []);
 
   // Generate personalized fueling schedule
-  const generateSchedule = (durationMinutes: number) => {
+  const generateSchedule = useCallback((durationMinutes: number) => {
     const schedule: FuelAlert[] = [];
     
     // Personalized carb timing based on profile
@@ -124,7 +124,7 @@ export default function CyclingNutritionApp() {
     }
 
     return schedule.sort((a, b) => a.time - b.time);
-  };
+  }, [currentTemp, nutritionProfile]);
 
   // Timer functionality
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function CyclingNutritionApp() {
   // Update schedule when ride time/miles or temperature changes
   useEffect(() => {
     setFuelSchedule(generateSchedule(getEffectiveRideTime()));
-  }, [rideTime, rideMiles, rideType, currentTemp, nutritionProfile]);
+  }, [generateSchedule, getEffectiveRideTime]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
