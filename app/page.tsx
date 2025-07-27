@@ -19,10 +19,13 @@ export default function CyclingNutritionApp() {
   const [fuelSchedule, setFuelSchedule] = useState<FuelAlert[]>([]);
   const [completedAlerts, setCompletedAlerts] = useState<Set<number>>(new Set());
   const [currentTemp, setCurrentTemp] = useState<number>(75); // Fahrenheit
+  const [zipCode, setZipCode] = useState<string>('');
+  const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
+  const [weatherError, setWeatherError] = useState<string>('');
 
-  // Convert miles to estimated time (assuming 20mph average)
+  // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
-    return Math.round((miles / 20) * 60); // 20mph = 3 minutes per mile
+    return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
   };
 
   // Get effective ride duration for scheduling
@@ -69,6 +72,35 @@ export default function CyclingNutritionApp() {
     }
     return () => clearInterval(interval);
   }, [isRiding]);
+
+  // Fetch weather data from OpenWeatherMap
+  const fetchWeather = async (zip: string) => {
+    if (!zip || zip.length < 5) return;
+    
+    setIsLoadingWeather(true);
+    setWeatherError('');
+    
+    try {
+      // Note: You'll need to get a free API key from openweathermap.org
+      const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY || 'demo_key';
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?zip=${zip},US&appid=${API_KEY}&units=imperial`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Weather data not found');
+      }
+      
+      const data = await response.json();
+      setCurrentTemp(Math.round(data.main.temp));
+      setWeatherError('');
+    } catch (error) {
+      setWeatherError('Unable to fetch weather data');
+      setCurrentTemp(75); // fallback temperature
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  };
 
   // Update schedule when ride time/miles or temperature changes
   useEffect(() => {
@@ -194,7 +226,7 @@ export default function CyclingNutritionApp() {
                         placeholder="Enter miles"
                       />
                       <p className="text-sm text-blue-200 mt-1">
-                        Estimated time: {formatTime(milesToTime(rideMiles))} (at 20mph avg)
+                        Estimated time: {formatTime(milesToTime(rideMiles))} (at 14mph avg)
                       </p>
                     </div>
                   )}
@@ -202,19 +234,32 @@ export default function CyclingNutritionApp() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Temperature (°F)
+                    Zip Code for Weather
                   </label>
-                  <input 
-                    type="number" 
-                    value={currentTemp}
-                    onChange={(e) => setCurrentTemp(Number(e.target.value))}
-                    className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
-                    min="40" 
-                    max="110"
-                  />
-                  {currentTemp > 80 && (
-                    <p className="text-yellow-300 text-sm mt-1">
-                      Hot day - electrolyte alerts enabled
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
+                      className="flex-1 p-3 rounded-lg bg-white/20 border border-white/30 text-white"
+                      placeholder="12345"
+                      maxLength={5}
+                    />
+                    <button
+                      onClick={() => fetchWeather(zipCode)}
+                      disabled={isLoadingWeather || zipCode.length < 5}
+                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors"
+                    >
+                      {isLoadingWeather ? '...' : 'Get Weather'}
+                    </button>
+                  </div>
+                  {weatherError && (
+                    <p className="text-red-300 text-sm mt-1">{weatherError}</p>
+                  )}
+                  {currentTemp && (
+                    <p className="text-green-300 text-sm mt-1">
+                      Current temperature: {currentTemp}°F
+                      {currentTemp > 80 && ' - Hot day, electrolyte alerts enabled'}
                     </p>
                   )}
                 </div>
