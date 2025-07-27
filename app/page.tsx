@@ -84,7 +84,7 @@ export default function CyclingNutritionApp() {
 
     // Generate carb schedule
     for (let time = startTime; time < durationMinutes; time += carbInterval) {
-      const fuelType = nutritionProfile?.preferredFuels.length > 0 
+      const fuelType = nutritionProfile?.preferredFuels?.length && nutritionProfile.preferredFuels.length > 0 
         ? `(${nutritionProfile.preferredFuels[0].toLowerCase()})` 
         : '(½ gel or 8oz sports drink)';
       
