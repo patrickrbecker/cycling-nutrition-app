@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cycling-nutrition-app.vercel.app/sitemap.xml
+
+# Important pages
+Allow: /
+Allow: /survey
+
+# Block development files
+Disallow: /_next/
+Disallow: /api/
+
+# Crawl-delay for better server performance
+Crawl-delay: 1

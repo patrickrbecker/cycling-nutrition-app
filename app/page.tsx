@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw } from 'lucide-react';
+import Script from 'next/script';
 
 interface FuelAlert {
   time: number; // minutes
@@ -275,11 +276,43 @@ export default function CyclingNutritionApp() {
   const nextAlert = getNextAlert();
   const progressPercent = (elapsedTime / getEffectiveRideTime()) * 100;
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Cycling Fuel Planner",
+    "description": "Personalized cycling nutrition planner with real-time weather integration for optimal performance",
+    "url": "https://cycling-nutrition-app.vercel.app",
+    "applicationCategory": "SportsApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Personalized nutrition timing",
+      "Real-time weather integration", 
+      "Electrolyte recommendations",
+      "Hydration scheduling",
+      "Performance optimization"
+    ],
+    "author": {
+      "@type": "Organization",
+      "name": "Cycling Fuel Planner"
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <>
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <main className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
-        <div className="text-center mb-8">
+        <header className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-3">
             <Zap className="w-10 h-10 text-yellow-400" />
             Cycling Fuel Planner
@@ -312,12 +345,12 @@ export default function CyclingNutritionApp() {
               </a>
             </div>
           )}
-        </div>
+        </header>
 
         {!isRiding ? (
           /* Setup Screen */
-          <div className="space-y-6">
-            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+          <section className="space-y-6" aria-label="Ride Planning">
+            <article className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
               <h2 className="text-2xl font-semibold mb-4">Plan Your Ride</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -626,11 +659,11 @@ export default function CyclingNutritionApp() {
                   </div>
                 </div>
               </div>
-            </div>
+            </article>
 
             {/* Fuel Schedule Preview */}
-            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-4">Your Fuel Schedule</h3>
+            <section className="bg-white/10 rounded-xl p-6 backdrop-blur-sm" aria-label="Fuel Schedule">
+              <h3 className="text-xl font-semibold mb-4">Your Personalized Fuel Schedule</h3>
               <div className="space-y-3">
                 {fuelSchedule.map((alert, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
@@ -651,11 +684,11 @@ export default function CyclingNutritionApp() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
             {/* Pre-Ride Checklist */}
-            <div className="bg-green-500/20 rounded-xl p-6 border border-green-500/30">
-              <h3 className="text-xl font-semibold mb-4 text-green-300">Pre-Ride Checklist</h3>
+            <section className="bg-green-500/20 rounded-xl p-6 border border-green-500/30" aria-label="Pre-Ride Checklist">
+              <h3 className="text-xl font-semibold mb-4 text-green-300">Pre-Ride Preparation Checklist</h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <input type="checkbox" className="w-5 h-5" />
@@ -676,15 +709,16 @@ export default function CyclingNutritionApp() {
                   </div>
                 )}
               </div>
-            </div>
+            </section>
 
             <button 
               onClick={startRide}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl transition-colors text-xl"
+              aria-label="Start your cycling session with nutrition tracking"
             >
               Start Ride Timer
             </button>
-          </div>
+          </section>
         ) : (
           /* Ride Screen */
           <div className="space-y-6">
@@ -762,7 +796,8 @@ export default function CyclingNutritionApp() {
             </button>
           </div>
         )}
-      </div>
-    </div>
+        </div>
+      </main>
+    </>
   );
 }

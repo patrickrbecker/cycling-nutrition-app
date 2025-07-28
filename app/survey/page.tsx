@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, User, Droplets, Zap, AlertCircle, Coffee, Target } from 'lucide-react';
+import Head from 'next/head';
 
 interface SurveyData {
   weight: number;
@@ -283,8 +284,20 @@ export default function NutritionSurvey() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <>
+      <Head>
+        <title>Create Your Personalized Cycling Nutrition Profile | Cycling Fuel Planner</title>
+        <meta name="description" content="Create a personalized nutrition profile for optimal cycling performance. Answer 7 quick questions about your sweat rate, intensity, and preferences to get custom fuel timing recommendations." />
+        <meta name="keywords" content="cycling nutrition profile, personalized cycling nutrition, cycling fuel assessment, sports nutrition survey, cycling performance optimization" />
+        <meta property="og:title" content="Create Your Personalized Cycling Nutrition Profile" />
+        <meta property="og:description" content="Answer 7 quick questions to get personalized cycling nutrition recommendations based on your unique needs and preferences." />
+        <meta property="og:url" content="https://cycling-nutrition-app.vercel.app/survey" />
+        <meta name="twitter:title" content="Create Your Personalized Cycling Nutrition Profile" />
+        <meta name="twitter:description" content="Get custom cycling nutrition recommendations in just 7 quick questions." />
+        <link rel="canonical" href="https://cycling-nutrition-app.vercel.app/survey" />
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Personalized Nutrition Profile</h1>
@@ -333,7 +346,8 @@ export default function NutritionSurvey() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
