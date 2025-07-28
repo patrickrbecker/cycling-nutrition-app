@@ -201,8 +201,18 @@ export default function CyclingNutritionApp() {
       };
       
       setRouteData(route);
-      setRideType('time');
-      setRideTime(estimatedTime);
+      
+      // Auto-update route planning method based on user's unit system
+      if (unitSystem === 'US') {
+        // Convert km to miles for US users
+        const distanceInMiles = totalDistance * 0.621371;
+        setRideType('miles');
+        setRideMiles(Math.round(distanceInMiles * 10) / 10); // Round to 1 decimal
+      } else {
+        // Keep kilometers for UK users
+        setRideType('kilometers');
+        setRideKilometers(Math.round(totalDistance * 10) / 10); // Round to 1 decimal
+      }
       
     } catch (error) {
       setGpxError(error instanceof Error ? error.message : 'Failed to parse GPX file');
@@ -313,10 +323,14 @@ export default function CyclingNutritionApp() {
           // Only add if not too close to existing alerts
           const nearbyAlert = schedule.find(alert => Math.abs(alert.time - preFuelTime) < 10);
           if (!nearbyAlert && preFuelTime < durationMinutes) {
+            const elevationDisplay = unitSystem === 'US' 
+              ? `+${Math.round(climb.elevationGain * 3.28084)}ft`
+              : `+${Math.round(climb.elevationGain)}m`;
+            
             schedule.push({
               time: preFuelTime,
               type: 'carbs',
-              amount: `Extra carbs before climb (+${Math.round(climb.elevationGain)}m elevation)`,
+              amount: `Extra carbs before climb (${elevationDisplay} elevation)`,
               priority: 'critical'
             });
           }
@@ -359,7 +373,7 @@ export default function CyclingNutritionApp() {
     }
 
     return schedule.sort((a, b) => a.time - b.time);
-  }, [currentTemp, nutritionProfile, routeData]);
+  }, [currentTemp, nutritionProfile, routeData, unitSystem]);
 
   // Timer functionality
   useEffect(() => {
@@ -767,8 +781,18 @@ export default function CyclingNutritionApp() {
                     <div className="text-sm text-purple-100">
                       <div className="font-medium text-purple-200 mb-2">📍 {routeData.name}</div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div>Distance: <span className="text-white">{routeData.distance.toFixed(1)} km</span></div>
-                        <div>Elevation: <span className="text-white">+{Math.round(routeData.elevationGain)}m</span></div>
+                        <div>Distance: <span className="text-white">
+                          {unitSystem === 'US' 
+                            ? `${(routeData.distance * 0.621371).toFixed(1)} miles`
+                            : `${routeData.distance.toFixed(1)} km`
+                          }
+                        </span></div>
+                        <div>Elevation: <span className="text-white">
+                          {unitSystem === 'US' 
+                            ? `+${Math.round(routeData.elevationGain * 3.28084)} ft`
+                            : `+${Math.round(routeData.elevationGain)} m`
+                          }
+                        </span></div>
                         <div>Est. Time: <span className="text-white">{formatTime(routeData.estimatedTime)}</span></div>
                         <div>Climbs: <span className="text-white">{routeData.climbs.length} major</span></div>
                       </div>
@@ -918,7 +942,13 @@ export default function CyclingNutritionApp() {
                       <div>Fuel alerts: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length}</span></div>
                       <div>Total carbs: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length * 12}g approx.</span></div>
                       {routeData && routeData.elevationGain > 300 && (
-                        <div>Elevation boost: <span className="font-medium text-orange-300">+{Math.round((routeData.elevationGain / 1000) * 50)}% carbs</span></div>
+                        <div>Elevation boost: <span className="font-medium text-orange-300">
+                          +{Math.round((routeData.elevationGain / 1000) * 50)}% carbs 
+                          ({unitSystem === 'US' 
+                            ? `${Math.round(routeData.elevationGain * 3.28084)} ft gain`
+                            : `${Math.round(routeData.elevationGain)} m gain`
+                          })
+                        </span></div>
                       )}
                       {(currentTemp > 80 || (routeData && routeData.elevationGain > 500)) && (
                         <div>Electrolytes: <span className="font-medium text-yellow-300">{fuelSchedule.filter(alert => alert.type === 'electrolytes').length} doses needed</span></div>
