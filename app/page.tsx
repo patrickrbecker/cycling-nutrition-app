@@ -64,16 +64,12 @@ export default function CyclingNutritionApp() {
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
-    const result = Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
-    console.log('Distance box milesToTime:', miles, 'miles =', result, 'minutes');
-    return result;
+    return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
   };
 
   // Convert kilometers to estimated time (assuming 22.5 km/h average)
   const kilometersToTime = (kilometers: number) => {
-    const result = Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
-    console.log('Distance box kilometersToTime:', kilometers, 'km =', result, 'minutes');
-    return result;
+    return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
   };
 
   // Convert wind direction degrees to compass direction
@@ -240,32 +236,21 @@ export default function CyclingNutritionApp() {
         lastPoint = { lat, lon, ele: elevation, dist: totalDistance };
       }
       
-      // Calculate flat time using the same logic as distance box for consistency
+      // Calculate flat time using the same ROUNDED distance that will be displayed
       let flatTime: number;
       if (unitSystem === 'US') {
-        // For US users: convert km to miles, then use milesToTime calculation
+        // For US users: use the same rounded miles value that gets set in the distance box
         const distanceInMiles = totalDistance * 0.621371;
-        flatTime = Math.round((distanceInMiles / 14) * 60); // Same as milesToTime()
-        console.log('GPX Debug (US):');
-        console.log('- Total distance (km):', totalDistance);
-        console.log('- Distance in miles:', distanceInMiles);
-        console.log('- Flat time (minutes):', flatTime);
-        console.log('- Distance box would calculate:', Math.round((distanceInMiles / 14) * 60));
+        const roundedMiles = Math.round(distanceInMiles * 10) / 10; // Same rounding as distance box
+        flatTime = Math.round((roundedMiles / 14) * 60); // Use rounded distance for consistency
       } else {
-        // For UK users: use km directly with kilometersToTime calculation
-        flatTime = Math.round((totalDistance / 22.5) * 60); // Same as kilometersToTime()
-        console.log('GPX Debug (UK):');
-        console.log('- Total distance (km):', totalDistance);
-        console.log('- Flat time (minutes):', flatTime);
-        console.log('- Distance box would calculate:', Math.round((totalDistance / 22.5) * 60));
+        // For UK users: use the same rounded km value that gets set in the distance box
+        const roundedKm = Math.round(totalDistance * 10) / 10; // Same rounding as distance box
+        flatTime = Math.round((roundedKm / 22.5) * 60); // Use rounded distance for consistency
       }
       
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
-      
-      console.log('- Elevation gain (m):', totalElevationGain);
-      console.log('- Elevation bonus (minutes):', elevationTimeBonus);
-      console.log('- Final GPX estimated time:', estimatedTime);
       
       // Extract and sanitize route name from GPX
       const nameElement = gpxDoc.getElementsByTagName('name')[0];
@@ -287,13 +272,11 @@ export default function CyclingNutritionApp() {
         // Convert km to miles for US users
         const distanceInMiles = totalDistance * 0.621371;
         const roundedMiles = Math.round(distanceInMiles * 10) / 10;
-        console.log('GPX Auto-update (US): Setting rideMiles to', roundedMiles);
         setRideType('miles');
         setRideMiles(roundedMiles); // Round to 1 decimal
       } else {
         // Keep kilometers for UK users
         const roundedKm = Math.round(totalDistance * 10) / 10;
-        console.log('GPX Auto-update (UK): Setting rideKilometers to', roundedKm);
         setRideType('kilometers');
         setRideKilometers(roundedKm); // Round to 1 decimal
       }
