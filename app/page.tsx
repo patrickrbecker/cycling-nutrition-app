@@ -35,12 +35,19 @@ export default function CyclingNutritionApp() {
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
   const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
-  const [mapLayer, setMapLayer] = useState<string>('precipitation');
+  const [mapLayer, setMapLayer] = useState<string>('PAC0');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
     return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+  };
+
+  // Convert lat/lon to tile coordinates for Maps API
+  const getTileCoordinates = (lat: number, lon: number, zoom: number) => {
+    const x = Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+    const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+    return { x, y };
   };
 
   // Get effective ride duration for scheduling
@@ -369,9 +376,9 @@ export default function CyclingNutritionApp() {
                       <div className="text-blue-200 text-sm">Weather Map</div>
                       <div className="flex gap-1">
                         {[
-                          { key: 'precipitation', label: 'Rain' },
-                          { key: 'clouds', label: 'Clouds' },
-                          { key: 'wind', label: 'Wind' }
+                          { key: 'PAC0', label: 'Rain' },
+                          { key: 'CL', label: 'Clouds' },
+                          { key: 'WND', label: 'Wind' }
                         ].map(layer => (
                           <button
                             key={layer.key}
@@ -389,30 +396,39 @@ export default function CyclingNutritionApp() {
                     </div>
                     <div className="relative overflow-hidden rounded-lg border border-white/20 bg-gray-800">
                       <div className="w-full h-48 relative">
-                        <img
-                          src={`https://maps.openweathermap.org/maps/2.0/weather/${mapLayer}/1/0/0?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}&lat=${weatherCoords.lat}&lon=${weatherCoords.lon}&zoom=8`}
-                          alt="Weather Map"
-                          className="w-full h-full object-cover"
-                          onLoad={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.nextElementSibling?.remove(); // Remove loading message
-                          }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            // Show error message
-                            const errorDiv = document.createElement('div');
-                            errorDiv.className = 'absolute inset-0 flex items-center justify-center text-white text-sm';
-                            errorDiv.textContent = 'Weather map unavailable';
-                            target.parentElement?.appendChild(errorDiv);
-                          }}
-                        />
+                        {(() => {
+                          const zoom = 8;
+                          const { x, y } = getTileCoordinates(weatherCoords.lat, weatherCoords.lon, zoom);
+                          const tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                          
+                          return (
+                            <img
+                              src={tileUrl}
+                              alt="Weather Map"
+                              className="w-full h-full object-cover"
+                              onLoad={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                const loadingDiv = target.nextElementSibling as HTMLElement;
+                                if (loadingDiv) loadingDiv.style.display = 'none';
+                              }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const loadingDiv = target.nextElementSibling as HTMLElement;
+                                if (loadingDiv) {
+                                  loadingDiv.textContent = 'Weather map unavailable';
+                                  loadingDiv.className = 'absolute inset-0 flex items-center justify-center bg-gray-800/75 text-red-300 text-sm';
+                                }
+                              }}
+                            />
+                          );
+                        })()}
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-800/75 text-white text-sm">
                           Loading weather map...
                         </div>
                       </div>
                       <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
-                        {mapLayer === 'precipitation' ? 'Precipitation' : mapLayer}
+                        {mapLayer === 'PAC0' ? 'Precipitation' : mapLayer === 'CL' ? 'Clouds' : 'Wind'}
                       </div>
                       <div className="absolute bottom-2 left-2 text-xs text-white/70">
                         {weatherCoords.lat.toFixed(2)}, {weatherCoords.lon.toFixed(2)}
