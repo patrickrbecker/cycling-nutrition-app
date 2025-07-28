@@ -312,13 +312,6 @@ export default function CyclingNutritionApp() {
     return kilometersToTime(rideKilometers);
   }, [rideType, rideTime, rideMiles, rideKilometers]);
 
-  // Simple encryption/decryption for localStorage (basic obfuscation)
-  const encryptData = (data: string): string => {
-    // Simple base64 encoding with a basic cipher for client-side protection
-    // Note: This is not cryptographically secure, just protection against casual viewing
-    const encoded = btoa(data);
-    return encoded.split('').reverse().join('');
-  };
 
   const decryptData = (encryptedData: string): string => {
     try {

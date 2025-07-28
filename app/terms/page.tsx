@@ -27,7 +27,7 @@ export default function TermsAndConditions() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <div className="text-gray-200 space-y-3">
-              <p>By accessing and using Cycling Fuel Planner ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.</p>
+              <p>By accessing and using Cycling Fuel Planner (&ldquo;the Service&rdquo;), you accept and agree to be bound by the terms and provision of this agreement.</p>
             </div>
           </section>
 
@@ -71,7 +71,7 @@ export default function TermsAndConditions() {
             <div className="text-gray-200 space-y-3">
               <p>To the fullest extent permitted by law:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>The Service is provided "as is" without warranties of any kind</li>
+                <li>The Service is provided &ldquo;as is&rdquo; without warranties of any kind</li>
                 <li>We shall not be liable for any direct, indirect, incidental, or consequential damages</li>
                 <li>You use the Service at your own risk</li>
                 <li>We do not guarantee the accuracy or completeness of nutrition recommendations</li>
@@ -117,7 +117,7 @@ export default function TermsAndConditions() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Changes to Terms</h2>
             <div className="text-gray-200 space-y-3">
-              <p>We reserve the right to update these Terms at any time. We will notify users of any material changes by posting the new Terms on this page and updating the "Last updated" date.</p>
+              <p>We reserve the right to update these Terms at any time. We will notify users of any material changes by posting the new Terms on this page and updating the &ldquo;Last updated&rdquo; date.</p>
             </div>
           </section>
 
