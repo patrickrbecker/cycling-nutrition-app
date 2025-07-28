@@ -466,10 +466,10 @@ export default function CyclingNutritionApp() {
                       <div className="bg-white/10 rounded-lg p-3">
                         <div className="text-blue-200 mb-1">Wind Speed</div>
                         <div className="text-xl font-bold text-white">{windSpeed} mph</div>
-                        {(windGust > windSpeed || windDirection > 0) && (
+                        {(windGust > 0 || windDirection > 0) && (
                           <div className="text-xs text-blue-200">
-                            {windGust > windSpeed && `Gusts ${windGust} mph`}
-                            {windGust > windSpeed && windDirection > 0 && ' • '}
+                            {windGust > 0 && `Gusts ${windGust} mph`}
+                            {windGust > 0 && windDirection > 0 && ' • '}
                             {windDirection > 0 && `${getWindDirection(windDirection)}`}
                           </div>
                         )}
