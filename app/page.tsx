@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle } from 'lucide-react';
+import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw } from 'lucide-react';
 
 interface FuelAlert {
   time: number; // minutes
@@ -85,6 +85,12 @@ export default function CyclingNutritionApp() {
       setNutritionProfile(JSON.parse(saved));
     }
   }, []);
+
+  // Reset nutrition profile
+  const resetProfile = () => {
+    localStorage.removeItem('nutritionProfile');
+    setNutritionProfile(null);
+  };
 
   // Generate personalized fueling schedule
   const generateSchedule = useCallback((durationMinutes: number) => {
@@ -284,13 +290,20 @@ export default function CyclingNutritionApp() {
           </h1>
           <p className="text-blue-200">Smart nutrition timing for peak performance</p>
           {nutritionProfile ? (
-            <div className="mt-4 p-4 bg-green-500/20 rounded-lg border border-green-500/30">
+            <div className="mt-4 p-4 bg-green-500/20 rounded-lg border border-green-500/30 relative">
               <p className="text-green-300 font-medium">
                 Welcome back, {nutritionProfile.name}! Your personalized nutrition plan is ready.
               </p>
               <p className="text-sm text-green-200 mt-1">
                 Profile: {nutritionProfile.sweatRate} sweater, {nutritionProfile.intensity} intensity, {nutritionProfile.giSensitivity} stomach
               </p>
+              <button
+                onClick={resetProfile}
+                className="absolute bottom-2 right-2 p-1 text-green-300 hover:text-green-100 hover:bg-green-500/30 rounded-full transition-colors"
+                title="Reset profile and retake survey"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
             </div>
           ) : (
             <div className="mt-4">

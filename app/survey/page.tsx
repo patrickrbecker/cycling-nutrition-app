@@ -158,7 +158,7 @@ export default function NutritionSurvey() {
         <div className="space-y-4">
           <p className="text-blue-200 mb-6">This helps us recommend the right fuel timing and types</p>
           {[
-            { value: 'sensitive', label: 'Sensitive Stomach', desc: 'Often get nauseous or stomach issues during rides' },
+            { value: 'sensitive', label: 'Sensitive Stomach', desc: 'Often experience nausea or stomach issues during rides' },
             { value: 'normal', label: 'Normal Tolerance', desc: 'Occasional minor issues but generally fine' },
             { value: 'tolerant', label: 'Iron Stomach', desc: 'Can eat/drink anything during rides without issues' }
           ].map(option => (
@@ -252,7 +252,7 @@ export default function NutritionSurvey() {
           <p className="text-blue-200 mb-6">This helps us tailor recommendations to your level</p>
           {[
             { value: 'beginner', label: 'Beginner', desc: 'New to cycling or endurance sports' },
-            { value: 'intermediate', label: 'Intermediate', desc: 'Regular rider, some long rides under your belt' },
+            { value: 'intermediate', label: 'Intermediate', desc: 'Regular rider with some long rides under your belt' },
             { value: 'advanced', label: 'Advanced', desc: 'Experienced cyclist, racing or very long rides' }
           ].map(option => (
             <button
