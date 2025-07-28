@@ -60,6 +60,7 @@ export default function CyclingNutritionApp() {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isParsingGPX, setIsParsingGPX] = useState<boolean>(false);
   const [gpxError, setGpxError] = useState<string>('');
+  const [locationName, setLocationName] = useState<string>('');
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
@@ -391,7 +392,8 @@ export default function CyclingNutritionApp() {
       }
       
       const geoData = await geoResponse.json();
-      const { lat, lon } = geoData;
+      const { lat, lon, name, state } = geoData;
+      setLocationName(`${name}, ${state}`);
       
       // Then use One Call API 3.0 for comprehensive weather data
       const weatherResponse = await fetch(
@@ -425,6 +427,7 @@ export default function CyclingNutritionApp() {
       setWindDirection(0);
       setUvIndex(0);
       setWeatherDescription('');
+      setLocationName('');
     } finally {
       setIsLoadingWeather(false);
     }
@@ -656,7 +659,7 @@ export default function CyclingNutritionApp() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Zip Code for Weather
+                    Zip Code for Weather{locationName && ` - ${locationName}`}
                   </label>
                   <div className="flex gap-2">
                     <input 
