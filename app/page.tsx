@@ -33,6 +33,8 @@ export default function CyclingNutritionApp() {
   const [currentTemp, setCurrentTemp] = useState<number>(75); // Fahrenheit
   const [currentHumidity, setCurrentHumidity] = useState<number>(50); // Percentage
   const [windSpeed, setWindSpeed] = useState<number>(0); // mph
+  const [windGust, setWindGust] = useState<number>(0); // mph
+  const [windDirection, setWindDirection] = useState<number>(0); // degrees
   const [uvIndex, setUvIndex] = useState<number>(0);
   const [feelsLike, setFeelsLike] = useState<number>(75); // Fahrenheit
   const [weatherDescription, setWeatherDescription] = useState<string>('');
@@ -50,6 +52,13 @@ export default function CyclingNutritionApp() {
   // Convert kilometers to estimated time (assuming 22.5 km/h average)
   const kilometersToTime = (kilometers: number) => {
     return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+  };
+
+  // Convert wind direction degrees to compass direction
+  const getWindDirection = (degrees: number) => {
+    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round(degrees / 22.5) % 16;
+    return directions[index];
   };
 
 
@@ -189,6 +198,8 @@ export default function CyclingNutritionApp() {
       setFeelsLike(Math.round(current.feels_like));
       setCurrentHumidity(current.humidity);
       setWindSpeed(Math.round(current.wind_speed));
+      setWindGust(current.wind_gust ? Math.round(current.wind_gust) : 0);
+      setWindDirection(current.wind_deg || 0);
       setUvIndex(Math.round(current.uvi));
       setWeatherDescription(current.weather[0].description);
       setWeatherCoords({ lat, lon });
@@ -200,6 +211,8 @@ export default function CyclingNutritionApp() {
       setFeelsLike(75);
       setCurrentHumidity(50);
       setWindSpeed(0);
+      setWindGust(0);
+      setWindDirection(0);
       setUvIndex(0);
       setWeatherDescription('');
       setWeatherCoords(null);
@@ -453,6 +466,13 @@ export default function CyclingNutritionApp() {
                       <div className="bg-white/10 rounded-lg p-3">
                         <div className="text-blue-200 mb-1">Wind Speed</div>
                         <div className="text-xl font-bold text-white">{windSpeed} mph</div>
+                        {(windGust > windSpeed || windDirection > 0) && (
+                          <div className="text-xs text-blue-200">
+                            {windGust > windSpeed && `Gusts ${windGust} mph`}
+                            {windGust > windSpeed && windDirection > 0 && ' • '}
+                            {windDirection > 0 && `${getWindDirection(windDirection)}`}
+                          </div>
+                        )}
                       </div>
                       <div className="bg-white/10 rounded-lg p-3">
                         <div className="text-blue-200 mb-1">UV Index</div>
