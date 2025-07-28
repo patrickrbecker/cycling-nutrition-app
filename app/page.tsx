@@ -387,15 +387,35 @@ export default function CyclingNutritionApp() {
                         ))}
                       </div>
                     </div>
-                    <div className="relative overflow-hidden rounded-lg border border-white/20">
-                      <iframe
-                        src={`https://openweathermap.org/weathermap?basemap=map&cities=false&layer=${mapLayer}&lat=${weatherCoords.lat}&lon=${weatherCoords.lon}&zoom=10`}
-                        className="w-full h-48 border-0"
-                        title="Weather Map"
-                        loading="lazy"
-                      />
+                    <div className="relative overflow-hidden rounded-lg border border-white/20 bg-gray-800">
+                      <div className="w-full h-48 relative">
+                        <img
+                          src={`https://maps.openweathermap.org/maps/2.0/weather/${mapLayer}/1/0/0?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}&lat=${weatherCoords.lat}&lon=${weatherCoords.lon}&zoom=8`}
+                          alt="Weather Map"
+                          className="w-full h-full object-cover"
+                          onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.nextElementSibling?.remove(); // Remove loading message
+                          }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            // Show error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'absolute inset-0 flex items-center justify-center text-white text-sm';
+                            errorDiv.textContent = 'Weather map unavailable';
+                            target.parentElement?.appendChild(errorDiv);
+                          }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800/75 text-white text-sm">
+                          Loading weather map...
+                        </div>
+                      </div>
                       <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
                         {mapLayer === 'precipitation' ? 'Precipitation' : mapLayer}
+                      </div>
+                      <div className="absolute bottom-2 left-2 text-xs text-white/70">
+                        {weatherCoords.lat.toFixed(2)}, {weatherCoords.lon.toFixed(2)}
                       </div>
                     </div>
                   </div>
