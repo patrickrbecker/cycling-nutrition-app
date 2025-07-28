@@ -64,12 +64,16 @@ export default function CyclingNutritionApp() {
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
-    return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+    const result = Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+    console.log(`🚗 Distance box: ${miles} miles → ${result} minutes`);
+    return result;
   };
 
   // Convert kilometers to estimated time (assuming 22.5 km/h average)
   const kilometersToTime = (kilometers: number) => {
-    return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+    const result = Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+    console.log(`🚗 Distance box: ${kilometers} km → ${result} minutes`);
+    return result;
   };
 
   // Convert wind direction degrees to compass direction
@@ -251,6 +255,11 @@ export default function CyclingNutritionApp() {
       
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
+      
+      console.log(`🗺️ GPX Route: ${totalDistance.toFixed(2)} km`);
+      console.log(`🗺️ GPX Base time: ${flatTime} minutes`);
+      console.log(`🗺️ GPX Elevation bonus: ${elevationTimeBonus.toFixed(1)} minutes`);
+      console.log(`🗺️ GPX Total time: ${estimatedTime} minutes`);
       
       // Extract and sanitize route name from GPX
       const nameElement = gpxDoc.getElementsByTagName('name')[0];
