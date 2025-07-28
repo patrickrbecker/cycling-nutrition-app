@@ -350,6 +350,70 @@ export default function CyclingNutritionApp() {
                   )}
                 </div>
               </div>
+
+              {/* Ride Forecast */}
+              <div className="bg-white/5 rounded-lg p-4 mt-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Timer className="w-5 h-5 text-blue-400" />
+                  Ride Forecast
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-blue-200 mb-2">Duration & Distance</div>
+                    <div className="space-y-1">
+                      {rideType === 'time' ? (
+                        <>
+                          <div>Duration: <span className="font-medium text-white">{formatTime(rideTime)}</span></div>
+                          <div>Est. Distance: <span className="font-medium text-white">{Math.round((rideTime / 60) * 14)} miles</span></div>
+                        </>
+                      ) : (
+                        <>
+                          <div>Distance: <span className="font-medium text-white">{rideMiles} miles</span></div>
+                          <div>Est. Duration: <span className="font-medium text-white">{formatTime(milesToTime(rideMiles))}</span></div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-blue-200 mb-2">Fuel Requirements</div>
+                    <div className="space-y-1">
+                      <div>Fuel alerts: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length}</span></div>
+                      <div>Total carbs: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length * 12}g approx.</span></div>
+                      {currentTemp > 80 && (
+                        <div>Electrolytes: <span className="font-medium text-yellow-300">{fuelSchedule.filter(alert => alert.type === 'electrolytes').length} doses needed</span></div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-blue-200 mb-2">Conditions</div>
+                    <div className="space-y-1">
+                      {currentTemp ? (
+                        <>
+                          <div>Temperature: <span className="font-medium text-white">{currentTemp}°F</span></div>
+                          <div>Difficulty: <span className={`font-medium ${currentTemp > 85 ? 'text-red-300' : currentTemp > 80 ? 'text-yellow-300' : currentTemp < 50 ? 'text-blue-300' : 'text-green-300'}`}>
+                            {currentTemp > 85 ? 'Very Hot' : currentTemp > 80 ? 'Hot' : currentTemp < 50 ? 'Cold' : 'Moderate'}
+                          </span></div>
+                        </>
+                      ) : (
+                        <div className="text-gray-400">Enter zip code for weather forecast</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-blue-200 mb-2">Hydration</div>
+                    <div className="space-y-1">
+                      <div>Est. fluid loss: <span className="font-medium text-white">{Math.round((getEffectiveRideTime() / 60) * 16)}oz</span></div>
+                      <div>Recommended intake: <span className="font-medium text-white">{Math.round((getEffectiveRideTime() / 60) * 20)}oz</span></div>
+                      {nutritionProfile?.sweatRate === 'heavy' && (
+                        <div className="text-yellow-300 text-xs">Heavy sweater - increase by 25%</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Fuel Schedule Preview */}
