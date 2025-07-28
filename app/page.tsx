@@ -24,7 +24,8 @@ interface NutritionProfile {
 export default function CyclingNutritionApp() {
   const [rideTime, setRideTime] = useState<number>(60); // minutes
   const [rideMiles, setRideMiles] = useState<number>(20); // miles
-  const [rideType, setRideType] = useState<'time' | 'miles'>('time');
+  const [rideKilometers, setRideKilometers] = useState<number>(32); // kilometers
+  const [rideType, setRideType] = useState<'time' | 'miles' | 'kilometers'>('time');
   const [isRiding, setIsRiding] = useState(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [fuelSchedule, setFuelSchedule] = useState<FuelAlert[]>([]);
@@ -46,11 +47,18 @@ export default function CyclingNutritionApp() {
     return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
   };
 
+  // Convert kilometers to estimated time (assuming 22.5 km/h average)
+  const kilometersToTime = (kilometers: number) => {
+    return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+  };
+
 
   // Get effective ride duration for scheduling
   const getEffectiveRideTime = useCallback(() => {
-    return rideType === 'time' ? rideTime : milesToTime(rideMiles);
-  }, [rideType, rideTime, rideMiles]);
+    if (rideType === 'time') return rideTime;
+    if (rideType === 'miles') return milesToTime(rideMiles);
+    return kilometersToTime(rideKilometers);
+  }, [rideType, rideTime, rideMiles, rideKilometers]);
 
   // Load nutrition profile on mount
   useEffect(() => {
@@ -307,6 +315,16 @@ export default function CyclingNutritionApp() {
                     >
                       By Miles
                     </button>
+                    <button
+                      onClick={() => setRideType('kilometers')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideType === 'kilometers' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      By Kilometers
+                    </button>
                   </div>
                   
                   {rideType === 'time' ? (
@@ -328,7 +346,7 @@ export default function CyclingNutritionApp() {
                         <option value={300}>5 hours</option>
                       </select>
                     </div>
-                  ) : (
+                  ) : rideType === 'miles' ? (
                     <div>
                       <label className="block text-sm font-medium mb-2">
                         Expected Distance (miles)
@@ -345,6 +363,25 @@ export default function CyclingNutritionApp() {
                       />
                       <p className="text-sm text-blue-200 mt-1">
                         Estimated time: {formatTime(milesToTime(rideMiles))} (at 14mph avg)
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Expected Distance (kilometers)
+                      </label>
+                      <input 
+                        type="number" 
+                        value={rideKilometers}
+                        onChange={(e) => setRideKilometers(Number(e.target.value))}
+                        className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
+                        min="8" 
+                        max="320"
+                        step="8"
+                        placeholder="Enter kilometers"
+                      />
+                      <p className="text-sm text-blue-200 mt-1">
+                        Estimated time: {formatTime(kilometersToTime(rideKilometers))} (at 22.5km/h avg)
                       </p>
                     </div>
                   )}
@@ -464,12 +501,17 @@ export default function CyclingNutritionApp() {
                       {rideType === 'time' ? (
                         <>
                           <div>Duration: <span className="font-medium text-white">{formatTime(rideTime)}</span></div>
-                          <div>Est. Distance: <span className="font-medium text-white">{Math.round((rideTime / 60) * 14)} miles</span></div>
+                          <div>Est. Distance: <span className="font-medium text-white">{Math.round((rideTime / 60) * 14)} miles / {Math.round((rideTime / 60) * 22.5)} km</span></div>
+                        </>
+                      ) : rideType === 'miles' ? (
+                        <>
+                          <div>Distance: <span className="font-medium text-white">{rideMiles} miles ({Math.round(rideMiles * 1.609)} km)</span></div>
+                          <div>Est. Duration: <span className="font-medium text-white">{formatTime(milesToTime(rideMiles))}</span></div>
                         </>
                       ) : (
                         <>
-                          <div>Distance: <span className="font-medium text-white">{rideMiles} miles</span></div>
-                          <div>Est. Duration: <span className="font-medium text-white">{formatTime(milesToTime(rideMiles))}</span></div>
+                          <div>Distance: <span className="font-medium text-white">{rideKilometers} km ({Math.round(rideKilometers * 0.621)} miles)</span></div>
+                          <div>Est. Duration: <span className="font-medium text-white">{formatTime(kilometersToTime(rideKilometers))}</span></div>
                         </>
                       )}
                     </div>
@@ -585,6 +627,7 @@ export default function CyclingNutritionApp() {
                   <div className="text-sm text-blue-200">
                     of {formatTime(getEffectiveRideTime())} 
                     {rideType === 'miles' && ` (${rideMiles} miles)`}
+                    {rideType === 'kilometers' && ` (${rideKilometers} km)`}
                   </div>
                 </div>
               </div>
