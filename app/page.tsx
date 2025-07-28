@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw, Upload, MapPin } from 'lucide-react';
 import Script from 'next/script';
 
 interface FuelAlert {
@@ -20,6 +20,19 @@ interface NutritionProfile {
   preferredFuels: string[];
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
   name: string;
+}
+
+interface RouteData {
+  name: string;
+  distance: number; // in kilometers
+  elevationGain: number; // in meters
+  estimatedTime: number; // in minutes
+  climbs: Array<{
+    startDistance: number;
+    endDistance: number;
+    elevationGain: number;
+    grade: number;
+  }>;
 }
 
 export default function CyclingNutritionApp() {
@@ -44,6 +57,9 @@ export default function CyclingNutritionApp() {
   const [weatherError, setWeatherError] = useState<string>('');
   const [unitSystem, setUnitSystem] = useState<'US' | 'UK'>('US');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
+  const [routeData, setRouteData] = useState<RouteData | null>(null);
+  const [isParsingGPX, setIsParsingGPX] = useState<boolean>(false);
+  const [gpxError, setGpxError] = useState<string>('');
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
@@ -68,6 +84,143 @@ export default function CyclingNutritionApp() {
   const getTempUnit = () => unitSystem === 'UK' ? '°C' : '°F';
   const getSpeedUnit = () => unitSystem === 'UK' ? 'km/h' : 'mph';
   const getDistanceUnit = () => unitSystem === 'UK' ? 'km' : 'miles';
+
+  // Distance calculation utility (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Parse GPX file and extract route data
+  const parseGPXFile = async (file: File) => {
+    setIsParsingGPX(true);
+    setGpxError('');
+    
+    try {
+      const text = await file.text();
+      const parser = new DOMParser();
+      const gpxDoc = parser.parseFromString(text, 'application/xml');
+      
+      // Check for parsing errors
+      if (gpxDoc.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Invalid GPX file format');
+      }
+      
+      // Extract track points
+      const trackPoints = Array.from(gpxDoc.getElementsByTagName('trkpt'));
+      
+      if (trackPoints.length === 0) {
+        throw new Error('No track points found in GPX file');
+      }
+      
+      let totalDistance = 0;
+      let totalElevationGain = 0;
+      let minElevation = Infinity;
+      let maxElevation = -Infinity;
+      const climbs: RouteData['climbs'] = [];
+      
+      let currentClimb: { startDistance: number; startElevation: number; elevationGain: number } | null = null;
+      let lastPoint: { lat: number; lon: number; ele: number; dist: number } | null = null;
+      
+      // Process each track point
+      for (let i = 0; i < trackPoints.length; i++) {
+        const point = trackPoints[i];
+        const lat = parseFloat(point.getAttribute('lat') || '0');
+        const lon = parseFloat(point.getAttribute('lon') || '0');
+        const eleElement = point.getElementsByTagName('ele')[0];
+        const elevation = eleElement ? parseFloat(eleElement.textContent || '0') : 0;
+        
+        if (lastPoint) {
+          // Calculate distance from last point
+          const segmentDistance = calculateDistance(lastPoint.lat, lastPoint.lon, lat, lon);
+          totalDistance += segmentDistance;
+          
+          // Calculate elevation change
+          const elevationChange = elevation - lastPoint.ele;
+          
+          // Track elevation gain
+          if (elevationChange > 0) {
+            totalElevationGain += elevationChange;
+          }
+          
+          // Detect climbs (sustained elevation gain)
+          if (elevationChange > 0.5 && segmentDistance > 0) { // Climbing
+            if (!currentClimb) {
+              currentClimb = {
+                startDistance: lastPoint.dist,
+                startElevation: lastPoint.ele,
+                elevationGain: 0
+              };
+            }
+            currentClimb.elevationGain += elevationChange;
+          } else if (currentClimb && (elevationChange < -0.5 || i === trackPoints.length - 1)) {
+            // End of climb
+            if (currentClimb.elevationGain > 30) { // Only count significant climbs
+              const climbDistance = totalDistance - currentClimb.startDistance;
+              const avgGrade = climbDistance > 0 ? (currentClimb.elevationGain / (climbDistance * 1000)) * 100 : 0;
+              
+              climbs.push({
+                startDistance: currentClimb.startDistance,
+                endDistance: totalDistance,
+                elevationGain: currentClimb.elevationGain,
+                grade: avgGrade
+              });
+            }
+            currentClimb = null;
+          }
+        }
+        
+        minElevation = Math.min(minElevation, elevation);
+        maxElevation = Math.max(maxElevation, elevation);
+        
+        lastPoint = { lat, lon, ele: elevation, dist: totalDistance };
+      }
+      
+      // Estimate ride time based on distance and elevation
+      const flatTime = (totalDistance / 25) * 60; // 25 km/h base speed
+      const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
+      const estimatedTime = Math.round(flatTime + elevationTimeBonus);
+      
+      // Extract route name from GPX
+      const nameElement = gpxDoc.getElementsByTagName('name')[0];
+      const routeName = nameElement ? nameElement.textContent || 'Uploaded Route' : 'Uploaded Route';
+      
+      const route: RouteData = {
+        name: routeName,
+        distance: totalDistance,
+        elevationGain: totalElevationGain,
+        estimatedTime,
+        climbs
+      };
+      
+      setRouteData(route);
+      setRideType('time');
+      setRideTime(estimatedTime);
+      
+    } catch (error) {
+      setGpxError(error instanceof Error ? error.message : 'Failed to parse GPX file');
+    } finally {
+      setIsParsingGPX(false);
+    }
+  };
+
+  // Handle GPX file upload
+  const handleGPXUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.name.toLowerCase().endsWith('.gpx')) {
+        parseGPXFile(file);
+      } else {
+        setGpxError('Please select a valid GPX file');
+      }
+    }
+  };
 
 
   // Get effective ride duration for scheduling
@@ -99,16 +252,30 @@ export default function CyclingNutritionApp() {
     let carbInterval = 25; // default
     let startTime = 20; // default
     let carbAmount = '10-15g carbs';
+    let elevationMultiplier = 1.0;
+
+    // Calculate elevation-based adjustments
+    if (routeData) {
+      // Increase carb needs based on elevation gain
+      const elevationFactor = Math.min(routeData.elevationGain / 1000, 0.5); // Up to 50% increase for 1000m+
+      elevationMultiplier = 1 + elevationFactor;
+      
+      // Adjust timing for routes with significant climbing
+      if (routeData.elevationGain > 300) {
+        carbInterval = Math.max(15, carbInterval - 5); // More frequent for hilly routes
+        carbAmount = elevationMultiplier > 1.2 ? '15-20g carbs' : '12-18g carbs';
+      }
+    }
 
     if (nutritionProfile) {
       // Adjust based on GI sensitivity
       if (nutritionProfile.giSensitivity === 'sensitive') {
         carbInterval = 30; // less frequent for sensitive stomachs
         startTime = 15; // start earlier with smaller amounts
-        carbAmount = '8-12g carbs';
+        carbAmount = elevationMultiplier > 1.2 ? '10-15g carbs' : '8-12g carbs';
       } else if (nutritionProfile.giSensitivity === 'tolerant') {
         carbInterval = 20; // more frequent for iron stomachs
-        carbAmount = '15-20g carbs';
+        carbAmount = elevationMultiplier > 1.2 ? '18-25g carbs' : '15-20g carbs';
       }
 
       // Adjust based on intensity
@@ -133,18 +300,48 @@ export default function CyclingNutritionApp() {
       });
     }
 
-    // Enhanced electrolyte schedule based on sweat rate and temperature
+    // Add pre-climb fueling alerts for major climbs
+    if (routeData && routeData.climbs.length > 0) {
+      const avgSpeed = routeData.distance / (durationMinutes / 60); // km/h
+      
+      routeData.climbs.forEach(climb => {
+        if (climb.elevationGain > 100) { // Only for significant climbs
+          const climbStartTime = Math.round((climb.startDistance / avgSpeed) * 60);
+          const preFuelTime = Math.max(5, climbStartTime - 15); // 15 minutes before climb
+          
+          // Only add if not too close to existing alerts
+          const nearbyAlert = schedule.find(alert => Math.abs(alert.time - preFuelTime) < 10);
+          if (!nearbyAlert && preFuelTime < durationMinutes) {
+            schedule.push({
+              time: preFuelTime,
+              type: 'carbs',
+              amount: `Extra carbs before climb (+${Math.round(climb.elevationGain)}m elevation)`,
+              priority: 'critical'
+            });
+          }
+        }
+      });
+    }
+
+    // Enhanced electrolyte schedule based on sweat rate, temperature, and elevation
     const needsElectrolytes = currentTemp > 80 || 
       (nutritionProfile?.sweatRate === 'heavy') ||
-      (nutritionProfile?.sweatRate === 'moderate' && currentTemp > 75);
+      (nutritionProfile?.sweatRate === 'moderate' && currentTemp > 75) ||
+      (routeData && routeData.elevationGain > 500); // Extra electrolytes for high elevation gain
 
     if (needsElectrolytes) {
       let electrolyteInterval = 60;
       let sodiumAmount = '200-400mg sodium';
 
+      // Adjust for elevation (climbing increases sweat rate)
+      if (routeData && routeData.elevationGain > 500) {
+        electrolyteInterval = Math.max(45, electrolyteInterval - 15);
+        sodiumAmount = elevationMultiplier > 1.3 ? '350-550mg sodium' : '250-450mg sodium';
+      }
+
       if (nutritionProfile?.sweatRate === 'heavy') {
         electrolyteInterval = 45;
-        sodiumAmount = '300-500mg sodium';
+        sodiumAmount = elevationMultiplier > 1.2 ? '400-600mg sodium' : '300-500mg sodium';
       } else if (nutritionProfile?.sweatRate === 'light') {
         electrolyteInterval = 90;
         sodiumAmount = '150-300mg sodium';
@@ -161,7 +358,7 @@ export default function CyclingNutritionApp() {
     }
 
     return schedule.sort((a, b) => a.time - b.time);
-  }, [currentTemp, nutritionProfile]);
+  }, [currentTemp, nutritionProfile, routeData]);
 
   // Timer functionality
   useEffect(() => {
@@ -490,6 +687,65 @@ export default function CyclingNutritionApp() {
                 </div>
               </div>
 
+              {/* GPX Route Upload */}
+              <div className="bg-purple-500/20 rounded-lg p-4 mt-4 border border-purple-500/30">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
+                  <MapPin className="w-5 h-5 text-purple-400" />
+                  Route Analysis (Optional)
+                </h3>
+                <p className="text-sm text-purple-200 mb-3">
+                  Upload a GPX file for elevation-based nutrition calculations and pre-climb fueling alerts
+                </p>
+                
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {isParsingGPX ? 'Processing...' : 'Upload GPX File'}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".gpx"
+                      onChange={handleGPXUpload}
+                      disabled={isParsingGPX}
+                      className="hidden"
+                    />
+                  </label>
+                  
+                  {routeData && (
+                    <button
+                      onClick={() => setRouteData(null)}
+                      className="px-3 py-2 text-purple-300 hover:text-purple-100 text-sm"
+                    >
+                      Clear Route
+                    </button>
+                  )}
+                </div>
+                
+                {gpxError && (
+                  <p className="text-red-300 text-sm mt-2">{gpxError}</p>
+                )}
+                
+                {routeData && (
+                  <div className="mt-3 p-3 bg-purple-600/30 rounded-lg">
+                    <div className="text-sm text-purple-100">
+                      <div className="font-medium text-purple-200 mb-2">📍 {routeData.name}</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>Distance: <span className="text-white">{routeData.distance.toFixed(1)} km</span></div>
+                        <div>Elevation: <span className="text-white">+{Math.round(routeData.elevationGain)}m</span></div>
+                        <div>Est. Time: <span className="text-white">{formatTime(routeData.estimatedTime)}</span></div>
+                        <div>Climbs: <span className="text-white">{routeData.climbs.length} major</span></div>
+                      </div>
+                      {routeData.climbs.length > 0 && (
+                        <div className="mt-2 text-xs text-purple-200">
+                          Major climbs detected - pre-climb fueling alerts added
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Ride Forecast */}
               <div className="bg-white/5 rounded-lg p-4 mt-4">
                 <div className="flex items-center justify-between mb-3">
@@ -625,8 +881,14 @@ export default function CyclingNutritionApp() {
                     <div className="space-y-1">
                       <div>Fuel alerts: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length}</span></div>
                       <div>Total carbs: <span className="font-medium text-white">{fuelSchedule.filter(alert => alert.type === 'carbs').length * 12}g approx.</span></div>
-                      {currentTemp > 80 && (
+                      {routeData && routeData.elevationGain > 300 && (
+                        <div>Elevation boost: <span className="font-medium text-orange-300">+{Math.round((routeData.elevationGain / 1000) * 50)}% carbs</span></div>
+                      )}
+                      {(currentTemp > 80 || (routeData && routeData.elevationGain > 500)) && (
                         <div>Electrolytes: <span className="font-medium text-yellow-300">{fuelSchedule.filter(alert => alert.type === 'electrolytes').length} doses needed</span></div>
+                      )}
+                      {routeData && routeData.climbs.length > 0 && (
+                        <div>Pre-climb alerts: <span className="font-medium text-purple-300">{fuelSchedule.filter(alert => alert.priority === 'critical').length} added</span></div>
                       )}
                     </div>
                   </div>
