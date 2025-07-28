@@ -62,14 +62,15 @@ export default function CyclingNutritionApp() {
   const [gpxError, setGpxError] = useState<string>('');
   const [locationName, setLocationName] = useState<string>('');
 
-  // Convert miles to estimated time (assuming 14mph average)
+  // Convert miles to estimated time (using consistent 25 km/h base speed)
   const milesToTime = (miles: number) => {
-    return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+    const kilometers = miles * 1.60934; // Convert to km first
+    return Math.round((kilometers / 25) * 60); // 25 km/h base speed (consistent with GPX)
   };
 
-  // Convert kilometers to estimated time (assuming 22.5 km/h average)
+  // Convert kilometers to estimated time (using consistent 25 km/h base speed)
   const kilometersToTime = (kilometers: number) => {
-    return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+    return Math.round((kilometers / 25) * 60); // 25 km/h base speed (consistent with GPX)
   };
 
   // Convert wind direction degrees to compass direction
@@ -721,7 +722,7 @@ export default function CyclingNutritionApp() {
                         placeholder="Enter miles"
                       />
                       <p className="text-sm text-blue-200 mt-1">
-                        Estimated time: {formatTime(milesToTime(rideMiles))} (at 14mph avg)
+                        Estimated time: {formatTime(milesToTime(rideMiles))} (at 25km/h avg)
                       </p>
                     </div>
                   ) : (
@@ -743,7 +744,7 @@ export default function CyclingNutritionApp() {
                         placeholder="Enter kilometers"
                       />
                       <p className="text-sm text-blue-200 mt-1">
-                        Estimated time: {formatTime(kilometersToTime(rideKilometers))} (at 22.5km/h avg)
+                        Estimated time: {formatTime(kilometersToTime(rideKilometers))} (at 25km/h avg)
                       </p>
                     </div>
                   )}
