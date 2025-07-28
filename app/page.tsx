@@ -315,12 +315,20 @@ export default function CyclingNutritionApp() {
 
   const decryptData = (encryptedData: string): string => {
     try {
-      const reversed = encryptedData.split('').reverse().join('');
-      return atob(reversed);
+      // Multi-layer decryption: base64 decode, reverse, then XOR with simple key
+      const step1 = atob(encryptedData);
+      const step2 = step1.split('').reverse().join('');
+      const key = 'nutrition2025'; // Simple XOR key
+      let result = '';
+      for (let i = 0; i < step2.length; i++) {
+        result += String.fromCharCode(step2.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
     } catch {
       return '';
     }
   };
+
 
   // Secure localStorage operations
   const loadFromSecureStorage = useCallback((key: string): NutritionProfile | null => {
@@ -332,8 +340,8 @@ export default function CyclingNutritionApp() {
       if (!decrypted) return null;
       
       return JSON.parse(decrypted) as NutritionProfile;
-    } catch (error) {
-      console.error('Failed to load from secure storage:', error);
+    } catch {
+      // Failed to load from secure storage - fallback to unencrypted
       // Remove corrupted data
       localStorage.removeItem(key);
       return null;

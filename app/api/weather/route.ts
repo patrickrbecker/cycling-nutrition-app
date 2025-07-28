@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-    if (!API_KEY || API_KEY === 'demo_key') {
+    const API_KEY = process.env.OPENWEATHER_API_KEY;
+    if (!API_KEY) {
       return NextResponse.json(
         { error: 'Weather service temporarily unavailable' },
         { status: 503 }
@@ -161,8 +161,9 @@ export async function GET(request: NextRequest) {
       description: current.weather[0].description
     });
 
-  } catch (error) {
-    console.error('Weather API error:', error);
+  } catch {
+    // Log error without exposing sensitive details
+    console.error('Weather API request failed');
     
     // Don't expose internal error details to client
     return NextResponse.json(

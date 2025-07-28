@@ -40,12 +40,18 @@ export default function NutritionSurvey() {
       // Save survey data securely and redirect to main app
       try {
         const jsonString = JSON.stringify(surveyData);
-        const encoded = btoa(jsonString);
-        const encrypted = encoded.split('').reverse().join('');
+        // Multi-layer encryption: XOR with simple key, reverse, then base64 encode
+        const key = 'nutrition2025';
+        let step1 = '';
+        for (let i = 0; i < jsonString.length; i++) {
+          step1 += String.fromCharCode(jsonString.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        const step2 = step1.split('').reverse().join('');
+        const encrypted = btoa(step2);
         localStorage.setItem('nutritionProfile', encrypted);
         router.push('/?profile=true');
-      } catch (error) {
-        console.error('Failed to save profile:', error);
+      } catch {
+        // Failed to save profile with encryption - use fallback
         // Fallback to unencrypted storage
         localStorage.setItem('nutritionProfile', JSON.stringify(surveyData));
         router.push('/?profile=true');
