@@ -5,6 +5,40 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 100; // requests per hour
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
 
+// Weather cache store (simple in-memory cache)
+interface WeatherData {
+  location: string;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  windGust: number;
+  windDirection: number;
+  uvIndex: number;
+  description: string;
+  cached?: boolean;
+  stale?: boolean;
+  cacheAge?: number;
+  warning?: string;
+  fallback?: boolean;
+}
+
+const weatherCache = new Map<string, { data: WeatherData; timestamp: number }>();
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+// Default weather fallback for when service is down
+const DEFAULT_WEATHER: WeatherData = {
+  location: 'Default Location',
+  temperature: 75,
+  feelsLike: 75,
+  humidity: 50,
+  windSpeed: 5,
+  windGust: 0,
+  windDirection: 0,
+  uvIndex: 3,
+  description: 'partly cloudy'
+};
+
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address for rate limiting
   const forwarded = request.headers.get('x-forwarded-for');
@@ -38,19 +72,28 @@ function validateZipCode(zip: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
+  // Get and validate zip code first (needed for cache key in error handling)
+  const { searchParams } = new URL(request.url);
+  const zip = searchParams.get('zip');
+  
   try {
     // Rate limiting
     const rateLimitKey = getRateLimitKey(request);
     if (!checkRateLimit(rateLimitKey)) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429 }
+        { 
+          error: 'Rate limit exceeded. Please wait before making another request.',
+          retryAfter: Math.ceil(RATE_LIMIT_WINDOW / 1000 / 60), // minutes
+          fallbackWeather: DEFAULT_WEATHER
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil(RATE_LIMIT_WINDOW / 1000).toString()
+          }
+        }
       );
     }
-
-    // Get and validate zip code
-    const { searchParams } = new URL(request.url);
-    const zip = searchParams.get('zip');
     
     if (!zip) {
       return NextResponse.json(
@@ -64,6 +107,19 @@ export async function GET(request: NextRequest) {
         { error: 'Invalid zip code format' },
         { status: 400 }
       );
+    }
+
+    // Check cache first
+    const cacheKey = `weather_${zip}`;
+    const cached = weatherCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      return NextResponse.json({
+        ...cached.data,
+        cached: true,
+        cacheAge: Math.round((now - cached.timestamp) / 1000 / 60) // minutes
+      });
     }
 
     const API_KEY = process.env.OPENWEATHER_API_KEY;
@@ -135,8 +191,8 @@ export async function GET(request: NextRequest) {
       throw new Error(`Weather API failed: ${weatherResponse.status}`);
     }
     
-    const weatherData = await weatherResponse.json();
-    const current = weatherData.current;
+    const weatherApiData = await weatherResponse.json();
+    const current = weatherApiData.current;
     
     // Build location display string
     let locationDisplay = name || 'Unknown Location';
@@ -148,8 +204,8 @@ export async function GET(request: NextRequest) {
       locationDisplay = `${name}, US`;
     }
 
-    // Return sanitized response
-    return NextResponse.json({
+    // Prepare weather data
+    const weatherData = {
       location: locationDisplay,
       temperature: Math.round(current.temp),
       feelsLike: Math.round(current.feels_like),
@@ -158,17 +214,41 @@ export async function GET(request: NextRequest) {
       windGust: current.wind_gust ? Math.round(current.wind_gust) : 0,
       windDirection: current.wind_deg || 0,
       uvIndex: Math.round(current.uvi),
-      description: current.weather[0].description
+      description: current.weather[0].description,
+      cached: false
+    };
+
+    // Cache the successful response
+    weatherCache.set(cacheKey, {
+      data: weatherData,
+      timestamp: Date.now()
     });
+
+    return NextResponse.json(weatherData);
 
   } catch {
     // Log error without exposing sensitive details
     console.error('Weather API request failed');
     
-    // Don't expose internal error details to client
-    return NextResponse.json(
-      { error: 'Unable to fetch weather data' },
-      { status: 500 }
-    );
+    // Try to return stale cached data if available
+    const cacheKey = `weather_${zip}`;
+    const staleCache = weatherCache.get(cacheKey);
+    
+    if (staleCache) {
+      return NextResponse.json({
+        ...staleCache.data,
+        cached: true,
+        stale: true,
+        cacheAge: Math.round((Date.now() - staleCache.timestamp) / 1000 / 60),
+        warning: 'Using cached weather data - service temporarily unavailable'
+      });
+    }
+    
+    // Fallback to default weather if no cache available
+    return NextResponse.json({
+      ...DEFAULT_WEATHER,
+      fallback: true,
+      warning: 'Weather service unavailable - using default conditions'
+    });
   }
 }

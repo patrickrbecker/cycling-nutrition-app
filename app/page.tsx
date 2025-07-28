@@ -688,6 +688,26 @@ export default function CyclingNutritionApp() {
     try {
       const response = await fetch(`/api/weather?zip=${encodeURIComponent(zip)}`);
       
+      if (response.status === 429) {
+        // Rate limited - use fallback weather
+        const errorData = await response.json();
+        if (errorData.fallbackWeather) {
+          const data = errorData.fallbackWeather;
+          setLocationName(data.location);
+          setCurrentTemp(data.temperature);
+          setFeelsLike(data.feelsLike);
+          setCurrentHumidity(data.humidity);
+          setWindSpeed(data.windSpeed);
+          setWindGust(data.windGust);
+          setWindDirection(data.windDirection);
+          setUvIndex(data.uvIndex);
+          setWeatherDescription(data.description);
+          setWeatherError(`${errorData.error} Using default weather conditions.`);
+          setIsLoadingWeather(false);
+          return;
+        }
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Weather service unavailable');
@@ -704,7 +724,17 @@ export default function CyclingNutritionApp() {
       setWindDirection(data.windDirection);
       setUvIndex(data.uvIndex);
       setWeatherDescription(data.description);
-      setWeatherError('');
+      
+      // Show cache/fallback status
+      if (data.cached && data.stale) {
+        setWeatherError(`${data.warning} (${data.cacheAge} minutes old)`);
+      } else if (data.cached) {
+        setWeatherError(`Using cached data (${data.cacheAge} minutes old)`);
+      } else if (data.fallback) {
+        setWeatherError(data.warning);
+      } else {
+        setWeatherError('');
+      }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unable to fetch weather data';
