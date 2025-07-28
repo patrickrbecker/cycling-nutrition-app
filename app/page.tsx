@@ -64,12 +64,16 @@ export default function CyclingNutritionApp() {
 
   // Convert miles to estimated time (assuming 14mph average)
   const milesToTime = (miles: number) => {
-    return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+    const result = Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
+    console.log('Distance box milesToTime:', miles, 'miles =', result, 'minutes');
+    return result;
   };
 
   // Convert kilometers to estimated time (assuming 22.5 km/h average)
   const kilometersToTime = (kilometers: number) => {
-    return Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+    const result = Math.round((kilometers / 22.5) * 60); // 22.5 km/h = 2.67 minutes per km
+    console.log('Distance box kilometersToTime:', kilometers, 'km =', result, 'minutes');
+    return result;
   };
 
   // Convert wind direction degrees to compass direction
@@ -242,13 +246,26 @@ export default function CyclingNutritionApp() {
         // For US users: convert km to miles, then use milesToTime calculation
         const distanceInMiles = totalDistance * 0.621371;
         flatTime = Math.round((distanceInMiles / 14) * 60); // Same as milesToTime()
+        console.log('GPX Debug (US):');
+        console.log('- Total distance (km):', totalDistance);
+        console.log('- Distance in miles:', distanceInMiles);
+        console.log('- Flat time (minutes):', flatTime);
+        console.log('- Distance box would calculate:', Math.round((distanceInMiles / 14) * 60));
       } else {
         // For UK users: use km directly with kilometersToTime calculation
         flatTime = Math.round((totalDistance / 22.5) * 60); // Same as kilometersToTime()
+        console.log('GPX Debug (UK):');
+        console.log('- Total distance (km):', totalDistance);
+        console.log('- Flat time (minutes):', flatTime);
+        console.log('- Distance box would calculate:', Math.round((totalDistance / 22.5) * 60));
       }
       
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
+      
+      console.log('- Elevation gain (m):', totalElevationGain);
+      console.log('- Elevation bonus (minutes):', elevationTimeBonus);
+      console.log('- Final GPX estimated time:', estimatedTime);
       
       // Extract and sanitize route name from GPX
       const nameElement = gpxDoc.getElementsByTagName('name')[0];
@@ -269,12 +286,16 @@ export default function CyclingNutritionApp() {
       if (unitSystem === 'US') {
         // Convert km to miles for US users
         const distanceInMiles = totalDistance * 0.621371;
+        const roundedMiles = Math.round(distanceInMiles * 10) / 10;
+        console.log('GPX Auto-update (US): Setting rideMiles to', roundedMiles);
         setRideType('miles');
-        setRideMiles(Math.round(distanceInMiles * 10) / 10); // Round to 1 decimal
+        setRideMiles(roundedMiles); // Round to 1 decimal
       } else {
         // Keep kilometers for UK users
+        const roundedKm = Math.round(totalDistance * 10) / 10;
+        console.log('GPX Auto-update (UK): Setting rideKilometers to', roundedKm);
         setRideType('kilometers');
-        setRideKilometers(Math.round(totalDistance * 10) / 10); // Round to 1 decimal
+        setRideKilometers(roundedKm); // Round to 1 decimal
       }
       
     } catch (error) {
