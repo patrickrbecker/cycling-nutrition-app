@@ -403,11 +403,11 @@ export default function CyclingNutritionApp() {
                           // Add current time parameter for live data
                           const currentTime = Math.floor(Date.now() / 1000);
                           
-                          // Try different layer approaches
+                          // Only use API 1.0 layers (API 2.0 not available in subscription)
                           const layerMap: {[key: string]: string[]} = {
-                            'precipitation_new': ['precipitation_new', 'PAC0', 'PR0'],
-                            'clouds_new': ['clouds_new', 'CL', 'clouds'],
-                            'wind_new': ['wind_new', 'WND', 'wind']
+                            'precipitation_new': ['precipitation_new', 'rain_new', 'rain', 'precipitation'],
+                            'clouds_new': ['clouds_new', 'clouds', 'temp_new', 'temperature'],
+                            'wind_new': ['wind_new', 'wind', 'pressure_new', 'pressure']
                           };
                           
                           const layersToTry = layerMap[mapLayer] || [mapLayer];
@@ -432,14 +432,8 @@ export default function CyclingNutritionApp() {
                             const currentLayer = layersToTry[currentLayerIndex];
                             let url: string;
                             
-                            // Try different API formats
-                            if (currentLayer.includes('_new') || currentLayer === 'clouds' || currentLayer === 'wind') {
-                              // Maps API 1.0 format
-                              url = `https://tile.openweathermap.org/map/${currentLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
-                            } else {
-                              // Maps API 2.0 format with time parameter
-                              url = `http://maps.openweathermap.org/maps/2.0/weather/${currentLayer}/${zoom}/${x}/${y}?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}&date=${currentTime}`;
-                            }
+                            // Only use Maps API 1.0 format (API 2.0 not available in subscription)
+                            url = `https://tile.openweathermap.org/map/${currentLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
                             
                             console.log(`Trying weather map layer: ${currentLayer}, URL: ${url}`);
                             currentLayerIndex++;
