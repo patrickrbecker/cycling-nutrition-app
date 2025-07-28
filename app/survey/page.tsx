@@ -61,12 +61,12 @@ export default function NutritionSurvey() {
   const steps = [
     // Step 1: Personal Info
     {
-      title: "Let&apos;s Get Started",
+      title: "Let's Get Started",
       icon: <User className="w-8 h-8 text-blue-400" />,
       content: (
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">What&apos;s your name?</label>
+            <label className="block text-sm font-medium mb-2">What's your name?</label>
             <input
               type="text"
               value={surveyData.name}
@@ -122,7 +122,7 @@ export default function NutritionSurvey() {
 
     // Step 3: Ride Intensity
     {
-      title: "What&apos;s Your Typical Ride Intensity?",
+      title: "What's Your Typical Ride Intensity?",
       icon: <Zap className="w-8 h-8 text-yellow-400" />,
       content: (
         <div className="space-y-4">
@@ -152,7 +152,7 @@ export default function NutritionSurvey() {
 
     // Step 4: GI Sensitivity
     {
-      title: "How&apos;s Your Stomach During Rides?",
+      title: "How's Your Stomach During Rides?",
       icon: <AlertCircle className="w-8 h-8 text-green-400" />,
       content: (
         <div className="space-y-4">
@@ -185,7 +185,7 @@ export default function NutritionSurvey() {
       icon: <AlertCircle className="w-8 h-8 text-red-400" />,
       content: (
         <div className="space-y-4">
-          <p className="text-blue-200 mb-6">Select any issues you&apos;ve experienced (optional)</p>
+          <p className="text-blue-200 mb-6">Select any issues you've experienced (optional)</p>
           {[
             'Bonking/hitting the wall',
             'Nausea during rides',
@@ -245,7 +245,7 @@ export default function NutritionSurvey() {
 
     // Step 7: Experience Level
     {
-      title: "What&apos;s Your Cycling Experience?",
+      title: "What's Your Cycling Experience?",
       icon: <Target className="w-8 h-8 text-purple-400" />,
       content: (
         <div className="space-y-4">
