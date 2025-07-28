@@ -41,7 +41,6 @@ export default function CyclingNutritionApp() {
   const [zipCode, setZipCode] = useState<string>('');
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
-  const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
   const [unitSystem, setUnitSystem] = useState<'US' | 'UK'>('US');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
@@ -65,7 +64,6 @@ export default function CyclingNutritionApp() {
   // Unit conversion utilities
   const convertTemp = (tempF: number) => unitSystem === 'UK' ? Math.round((tempF - 32) * 5/9) : tempF;
   const convertSpeed = (speedMph: number) => unitSystem === 'UK' ? Math.round(speedMph * 1.609) : speedMph;
-  const convertDistance = (miles: number) => unitSystem === 'UK' ? Math.round(miles * 1.609) : miles;
   const getTempUnit = () => unitSystem === 'UK' ? '°C' : '°F';
   const getSpeedUnit = () => unitSystem === 'UK' ? 'km/h' : 'mph';
   const getDistanceUnit = () => unitSystem === 'UK' ? 'km' : 'miles';
@@ -217,7 +215,6 @@ export default function CyclingNutritionApp() {
       setWindDirection(current.wind_deg || 0);
       setUvIndex(Math.round(current.uvi));
       setWeatherDescription(current.weather[0].description);
-      setWeatherCoords({ lat, lon });
       setWeatherError('');
     } catch {
       setWeatherError('Unable to fetch weather data');
@@ -230,7 +227,6 @@ export default function CyclingNutritionApp() {
       setWindDirection(0);
       setUvIndex(0);
       setWeatherDescription('');
-      setWeatherCoords(null);
     } finally {
       setIsLoadingWeather(false);
     }

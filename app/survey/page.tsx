@@ -66,7 +66,7 @@ export default function NutritionSurvey() {
       content: (
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">What's your name?</label>
+            <label className="block text-sm font-medium mb-2">What&apos;s your name?</label>
             <input
               type="text"
               value={surveyData.name}
@@ -185,7 +185,7 @@ export default function NutritionSurvey() {
       icon: <AlertCircle className="w-8 h-8 text-red-400" />,
       content: (
         <div className="space-y-4">
-          <p className="text-blue-200 mb-6">Select any issues you've experienced (optional)</p>
+          <p className="text-blue-200 mb-6">Select any issues you&apos;ve experienced (optional)</p>
           {[
             'Bonking/hitting the wall',
             'Nausea during rides',
