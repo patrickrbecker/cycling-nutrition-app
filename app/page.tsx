@@ -400,42 +400,70 @@ export default function CyclingNutritionApp() {
                           const zoom = 8;
                           const { x, y } = getTileCoordinates(weatherCoords.lat, weatherCoords.lon, zoom);
                           
-                          // Try Maps API 1.0 format first
-                          const tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                          // Add current time parameter for live data
+                          const currentTime = Math.floor(Date.now() / 1000);
+                          
+                          // Try different layer approaches
+                          const layerMap: {[key: string]: string[]} = {
+                            'precipitation_new': ['precipitation_new', 'PAC0', 'PR0'],
+                            'clouds_new': ['clouds_new', 'CL', 'clouds'],
+                            'wind_new': ['wind_new', 'WND', 'wind']
+                          };
+                          
+                          const layersToTry = layerMap[mapLayer] || [mapLayer];
+                          let currentLayerIndex = 0;
+                          
+                          const tryNextLayer = (img: HTMLImageElement) => {
+                            if (currentLayerIndex >= layersToTry.length) {
+                              // All layers failed
+                              img.style.display = 'none';
+                              const loadingDiv = img.nextElementSibling as HTMLElement;
+                              if (loadingDiv) {
+                                loadingDiv.innerHTML = `
+                                  <div>Weather map blank/unavailable</div>
+                                  <div class="text-xs mt-1 opacity-70">Tried layers: ${layersToTry.join(', ')}</div>
+                                  <div class="text-xs opacity-70">Coords: ${x},${y} (zoom ${zoom})</div>
+                                `;
+                                loadingDiv.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-800/75 text-yellow-300 text-sm';
+                              }
+                              return;
+                            }
+                            
+                            const currentLayer = layersToTry[currentLayerIndex];
+                            let url: string;
+                            
+                            // Try different API formats
+                            if (currentLayer.includes('_new') || currentLayer === 'clouds' || currentLayer === 'wind') {
+                              // Maps API 1.0 format
+                              url = `https://tile.openweathermap.org/map/${currentLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                            } else {
+                              // Maps API 2.0 format with time parameter
+                              url = `http://maps.openweathermap.org/maps/2.0/weather/${currentLayer}/${zoom}/${x}/${y}?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}&date=${currentTime}`;
+                            }
+                            
+                            console.log(`Trying weather map layer: ${currentLayer}, URL: ${url}`);
+                            currentLayerIndex++;
+                            img.src = url;
+                          };
                           
                           return (
                             <img
-                              src={tileUrl}
                               alt="Weather Map"
                               className="w-full h-full object-cover"
                               onLoad={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 const loadingDiv = target.nextElementSibling as HTMLElement;
                                 if (loadingDiv) loadingDiv.style.display = 'none';
+                                console.log(`Weather map loaded successfully: ${target.src}`);
                               }}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                
-                                // Try Maps API 2.0 format as fallback
-                                const layer2_0 = mapLayer === 'precipitation_new' ? 'PAC0' : 
-                                                mapLayer === 'clouds_new' ? 'CL' : 'WND';
-                                const fallbackUrl = `http://maps.openweathermap.org/maps/2.0/weather/${layer2_0}/${zoom}/${x}/${y}?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
-                                
-                                if (target.src !== fallbackUrl) {
-                                  target.src = fallbackUrl;
-                                  return;
-                                }
-                                
-                                // Both failed, show error
-                                target.style.display = 'none';
-                                const loadingDiv = target.nextElementSibling as HTMLElement;
-                                if (loadingDiv) {
-                                  loadingDiv.innerHTML = `
-                                    <div>Weather map unavailable</div>
-                                    <div class="text-xs mt-1 opacity-70">API: ${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ? 'Key present' : 'No key'}</div>
-                                    <div class="text-xs opacity-70">Layer: ${mapLayer}</div>
-                                  `;
-                                  loadingDiv.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-800/75 text-red-300 text-sm';
+                                console.log(`Weather map failed to load: ${target.src}`);
+                                tryNextLayer(target);
+                              }}
+                              ref={(img) => {
+                                if (img && !img.src) {
+                                  tryNextLayer(img);
                                 }
                               }}
                             />
