@@ -401,7 +401,7 @@ export default function CyclingNutritionApp() {
                           const { x, y } = getTileCoordinates(weatherCoords.lat, weatherCoords.lon, zoom);
                           
                           // Try Maps API 1.0 format first
-                          let tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                          const tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
                           
                           return (
                             <img
