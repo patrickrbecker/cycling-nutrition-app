@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw, Upload, MapPin } from 'lucide-react';
 import Script from 'next/script';
+import Footer from './components/Footer';
 
 interface FuelAlert {
   time: number; // minutes
@@ -1381,6 +1382,7 @@ export default function CyclingNutritionApp() {
         )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

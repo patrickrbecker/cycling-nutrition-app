@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, User, Droplets, Zap, AlertCircle, Coffee, Target } from 'lucide-react';
 import Head from 'next/head';
+import Footer from '../components/Footer';
 
 interface SurveyData {
   weight: number;
@@ -358,6 +359,7 @@ export default function NutritionSurvey() {
         </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 }
