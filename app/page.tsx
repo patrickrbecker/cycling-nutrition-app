@@ -465,7 +465,7 @@ export default function CyclingNutritionApp() {
                         onChange={() => setUnitSystem('US')}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <span className="text-sm font-medium text-white">US Units</span>
+                      <span className="text-sm font-medium text-white">US</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -476,7 +476,7 @@ export default function CyclingNutritionApp() {
                         onChange={() => setUnitSystem('UK')}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <span className="text-sm font-medium text-white">UK Units</span>
+                      <span className="text-sm font-medium text-white">UK</span>
                     </label>
                   </div>
                 </div>
