@@ -42,6 +42,7 @@ export default function CyclingNutritionApp() {
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
   const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
+  const [unitSystem, setUnitSystem] = useState<'US' | 'UK'>('US');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
@@ -60,6 +61,14 @@ export default function CyclingNutritionApp() {
     const index = Math.round(degrees / 22.5) % 16;
     return directions[index];
   };
+
+  // Unit conversion utilities
+  const convertTemp = (tempF: number) => unitSystem === 'UK' ? Math.round((tempF - 32) * 5/9) : tempF;
+  const convertSpeed = (speedMph: number) => unitSystem === 'UK' ? Math.round(speedMph * 1.609) : speedMph;
+  const convertDistance = (miles: number) => unitSystem === 'UK' ? Math.round(miles * 1.609) : miles;
+  const getTempUnit = () => unitSystem === 'UK' ? '°C' : '°F';
+  const getSpeedUnit = () => unitSystem === 'UK' ? 'km/h' : 'mph';
+  const getDistanceUnit = () => unitSystem === 'UK' ? 'km' : 'miles';
 
 
   // Get effective ride duration for scheduling
@@ -432,7 +441,7 @@ export default function CyclingNutritionApp() {
                   )}
                   {currentTemp && (
                     <p className="text-green-300 text-sm mt-1">
-                      Current temperature: {currentTemp}°F, {currentHumidity}% humidity
+                      Current temperature: {convertTemp(currentTemp)}{getTempUnit()}, {currentHumidity}% humidity
                       {currentTemp > 80 && ' - Hot day, electrolyte alerts enabled'}
                     </p>
                   )}
@@ -441,10 +450,36 @@ export default function CyclingNutritionApp() {
 
               {/* Ride Forecast */}
               <div className="bg-white/5 rounded-lg p-4 mt-4">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Timer className="w-5 h-5 text-blue-400" />
-                  Ride Forecast
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Timer className="w-5 h-5 text-blue-400" />
+                    Ride Forecast
+                  </h3>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="unitSystem"
+                        value="US"
+                        checked={unitSystem === 'US'}
+                        onChange={() => setUnitSystem('US')}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm font-medium text-white">US Units</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="unitSystem"
+                        value="UK"
+                        checked={unitSystem === 'UK'}
+                        onChange={() => setUnitSystem('UK')}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm font-medium text-white">UK Units</span>
+                    </label>
+                  </div>
+                </div>
                 
                 {/* Enhanced Weather Details */}
                 {currentTemp && (
@@ -460,9 +495,9 @@ export default function CyclingNutritionApp() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       <div className="bg-white/10 rounded-lg p-3">
                         <div className="text-blue-200 mb-1">Temperature</div>
-                        <div className="text-xl font-bold text-white">{currentTemp}°F</div>
+                        <div className="text-xl font-bold text-white">{convertTemp(currentTemp)}{getTempUnit()}</div>
                         {feelsLike !== currentTemp && (
-                          <div className="text-xs text-blue-200">Feels like {feelsLike}°F</div>
+                          <div className="text-xs text-blue-200">Feels like {convertTemp(feelsLike)}{getTempUnit()}</div>
                         )}
                       </div>
                       <div className="bg-white/10 rounded-lg p-3">
@@ -471,10 +506,10 @@ export default function CyclingNutritionApp() {
                       </div>
                       <div className="bg-white/10 rounded-lg p-3">
                         <div className="text-blue-200 mb-1">Wind Speed</div>
-                        <div className="text-xl font-bold text-white">{windSpeed} mph</div>
+                        <div className="text-xl font-bold text-white">{convertSpeed(windSpeed)} {getSpeedUnit()}</div>
                         {(windGust > 0 || windDirection > 0) && (
                           <div className="text-xs text-blue-200">
-                            {windGust > 0 && `Gusts ${windGust} mph`}
+                            {windGust > 0 && `Gusts ${convertSpeed(windGust)} ${getSpeedUnit()}`}
                             {windGust > 0 && windDirection > 0 && ' • '}
                             {windDirection > 0 && `${getWindDirection(windDirection)}`}
                           </div>
@@ -527,16 +562,16 @@ export default function CyclingNutritionApp() {
                       {rideType === 'time' ? (
                         <>
                           <div>Duration: <span className="font-medium text-white">{formatTime(rideTime)}</span></div>
-                          <div>Est. Distance: <span className="font-medium text-white">{Math.round((rideTime / 60) * 14)} miles / {Math.round((rideTime / 60) * 22.5)} km</span></div>
+                          <div>Est. Distance: <span className="font-medium text-white">{unitSystem === 'UK' ? Math.round((rideTime / 60) * 22.5) : Math.round((rideTime / 60) * 14)} {getDistanceUnit()}</span></div>
                         </>
                       ) : rideType === 'miles' ? (
                         <>
-                          <div>Distance: <span className="font-medium text-white">{rideMiles} miles ({Math.round(rideMiles * 1.609)} km)</span></div>
+                          <div>Distance: <span className="font-medium text-white">{unitSystem === 'UK' ? Math.round(rideMiles * 1.609) : rideMiles} {getDistanceUnit()}</span></div>
                           <div>Est. Duration: <span className="font-medium text-white">{formatTime(milesToTime(rideMiles))}</span></div>
                         </>
                       ) : (
                         <>
-                          <div>Distance: <span className="font-medium text-white">{rideKilometers} km ({Math.round(rideKilometers * 0.621)} miles)</span></div>
+                          <div>Distance: <span className="font-medium text-white">{unitSystem === 'UK' ? rideKilometers : Math.round(rideKilometers * 0.621)} {getDistanceUnit()}</span></div>
                           <div>Est. Duration: <span className="font-medium text-white">{formatTime(kilometersToTime(rideKilometers))}</span></div>
                         </>
                       )}
@@ -559,7 +594,7 @@ export default function CyclingNutritionApp() {
                     <div className="space-y-1">
                       {currentTemp ? (
                         <>
-                          <div>Temperature: <span className="font-medium text-white">{currentTemp}°F</span></div>
+                          <div>Temperature: <span className="font-medium text-white">{convertTemp(currentTemp)}{getTempUnit()}</span></div>
                           <div>Difficulty: <span className={`font-medium ${currentTemp > 85 ? 'text-red-300' : currentTemp > 80 ? 'text-yellow-300' : currentTemp < 50 ? 'text-blue-300' : 'text-green-300'}`}>
                             {currentTemp > 85 ? 'Very Hot' : currentTemp > 80 ? 'Hot' : currentTemp < 50 ? 'Cold' : 'Moderate'}
                           </span></div>
