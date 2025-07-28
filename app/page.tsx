@@ -236,9 +236,17 @@ export default function CyclingNutritionApp() {
         lastPoint = { lat, lon, ele: elevation, dist: totalDistance };
       }
       
-      // Estimate ride time based on distance and elevation (using consistent 14 mph / 22.5 km/h base speed)
-      const baseSpeedKmh = unitSystem === 'US' ? 22.53 : 22.5; // 14 mph = 22.53 km/h for US, 22.5 km/h for UK
-      const flatTime = (totalDistance / baseSpeedKmh) * 60; // Consistent with distance box calculations
+      // Calculate flat time using the same logic as distance box for consistency
+      let flatTime: number;
+      if (unitSystem === 'US') {
+        // For US users: convert km to miles, then use milesToTime calculation
+        const distanceInMiles = totalDistance * 0.621371;
+        flatTime = Math.round((distanceInMiles / 14) * 60); // Same as milesToTime()
+      } else {
+        // For UK users: use km directly with kilometersToTime calculation
+        flatTime = Math.round((totalDistance / 22.5) * 60); // Same as kilometersToTime()
+      }
+      
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
       
