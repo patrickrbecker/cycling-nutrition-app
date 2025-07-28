@@ -367,10 +367,13 @@ export default function CyclingNutritionApp() {
                       <input 
                         type="number" 
                         value={rideMiles}
-                        onChange={(e) => setRideMiles(Number(e.target.value))}
+                        onChange={(e) => {
+                          const value = Math.min(Number(e.target.value), 9999);
+                          setRideMiles(value);
+                        }}
                         className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
                         min="5" 
-                        max="200"
+                        max="9999"
                         step="5"
                         placeholder="Enter miles"
                       />
@@ -386,10 +389,13 @@ export default function CyclingNutritionApp() {
                       <input 
                         type="number" 
                         value={rideKilometers}
-                        onChange={(e) => setRideKilometers(Number(e.target.value))}
+                        onChange={(e) => {
+                          const value = Math.min(Number(e.target.value), 9999);
+                          setRideKilometers(value);
+                        }}
                         className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white"
                         min="8" 
-                        max="320"
+                        max="9999"
                         step="8"
                         placeholder="Enter kilometers"
                       />
