@@ -134,7 +134,7 @@ export default function CyclingNutritionApp() {
   };
 
   // Parse GPX file and extract route data
-  const parseGPXFile = async (file: File) => {
+  const parseGPXFile = useCallback(async (file: File) => {
     setIsParsingGPX(true);
     setGpxError('');
     
@@ -236,8 +236,9 @@ export default function CyclingNutritionApp() {
         lastPoint = { lat, lon, ele: elevation, dist: totalDistance };
       }
       
-      // Estimate ride time based on distance and elevation
-      const flatTime = (totalDistance / 25) * 60; // 25 km/h base speed
+      // Estimate ride time based on distance and elevation (using consistent 14 mph / 22.5 km/h base speed)
+      const baseSpeedKmh = unitSystem === 'US' ? 22.53 : 22.5; // 14 mph = 22.53 km/h for US, 22.5 km/h for UK
+      const flatTime = (totalDistance / baseSpeedKmh) * 60; // Consistent with distance box calculations
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
       
@@ -273,7 +274,7 @@ export default function CyclingNutritionApp() {
     } finally {
       setIsParsingGPX(false);
     }
-  };
+  }, [unitSystem]);
 
   // Handle GPX file upload
   const handleGPXUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
