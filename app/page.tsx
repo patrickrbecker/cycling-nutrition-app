@@ -35,7 +35,7 @@ export default function CyclingNutritionApp() {
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
   const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
-  const [mapLayer, setMapLayer] = useState<string>('PAC0');
+  const [mapLayer, setMapLayer] = useState<string>('precipitation_new');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
@@ -376,9 +376,9 @@ export default function CyclingNutritionApp() {
                       <div className="text-blue-200 text-sm">Weather Map</div>
                       <div className="flex gap-1">
                         {[
-                          { key: 'PAC0', label: 'Rain' },
-                          { key: 'CL', label: 'Clouds' },
-                          { key: 'WND', label: 'Wind' }
+                          { key: 'precipitation_new', label: 'Rain' },
+                          { key: 'clouds_new', label: 'Clouds' },
+                          { key: 'wind_new', label: 'Wind' }
                         ].map(layer => (
                           <button
                             key={layer.key}
@@ -399,7 +399,9 @@ export default function CyclingNutritionApp() {
                         {(() => {
                           const zoom = 8;
                           const { x, y } = getTileCoordinates(weatherCoords.lat, weatherCoords.lon, zoom);
-                          const tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                          
+                          // Try Maps API 1.0 format first
+                          let tileUrl = `https://tile.openweathermap.org/map/${mapLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
                           
                           return (
                             <img
@@ -413,11 +415,27 @@ export default function CyclingNutritionApp() {
                               }}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
+                                
+                                // Try Maps API 2.0 format as fallback
+                                const layer2_0 = mapLayer === 'precipitation_new' ? 'PAC0' : 
+                                                mapLayer === 'clouds_new' ? 'CL' : 'WND';
+                                const fallbackUrl = `http://maps.openweathermap.org/maps/2.0/weather/${layer2_0}/${zoom}/${x}/${y}?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
+                                
+                                if (target.src !== fallbackUrl) {
+                                  target.src = fallbackUrl;
+                                  return;
+                                }
+                                
+                                // Both failed, show error
                                 target.style.display = 'none';
                                 const loadingDiv = target.nextElementSibling as HTMLElement;
                                 if (loadingDiv) {
-                                  loadingDiv.textContent = 'Weather map unavailable';
-                                  loadingDiv.className = 'absolute inset-0 flex items-center justify-center bg-gray-800/75 text-red-300 text-sm';
+                                  loadingDiv.innerHTML = `
+                                    <div>Weather map unavailable</div>
+                                    <div class="text-xs mt-1 opacity-70">API: ${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ? 'Key present' : 'No key'}</div>
+                                    <div class="text-xs opacity-70">Layer: ${mapLayer}</div>
+                                  `;
+                                  loadingDiv.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-800/75 text-red-300 text-sm';
                                 }
                               }}
                             />
@@ -428,7 +446,8 @@ export default function CyclingNutritionApp() {
                         </div>
                       </div>
                       <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
-                        {mapLayer === 'PAC0' ? 'Precipitation' : mapLayer === 'CL' ? 'Clouds' : 'Wind'}
+                        {mapLayer.includes('precipitation') ? 'Precipitation' : 
+                         mapLayer.includes('clouds') ? 'Clouds' : 'Wind'}
                       </div>
                       <div className="absolute bottom-2 left-2 text-xs text-white/70">
                         {weatherCoords.lat.toFixed(2)}, {weatherCoords.lon.toFixed(2)}
