@@ -34,6 +34,8 @@ export default function CyclingNutritionApp() {
   const [zipCode, setZipCode] = useState<string>('');
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
+  const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
+  const [mapLayer, setMapLayer] = useState<string>('precipitation');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
@@ -158,11 +160,13 @@ export default function CyclingNutritionApp() {
       const data = await response.json();
       setCurrentTemp(Math.round(data.main.temp));
       setCurrentHumidity(data.main.humidity);
+      setWeatherCoords({ lat: data.coord.lat, lon: data.coord.lon });
       setWeatherError('');
     } catch {
       setWeatherError('Unable to fetch weather data');
       setCurrentTemp(75); // fallback temperature
       setCurrentHumidity(50); // fallback humidity
+      setWeatherCoords(null); // reset coordinates
     } finally {
       setIsLoadingWeather(false);
     }
@@ -357,6 +361,46 @@ export default function CyclingNutritionApp() {
                   <Timer className="w-5 h-5 text-blue-400" />
                   Ride Forecast
                 </h3>
+                
+                {/* Weather Map */}
+                {weatherCoords && (
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="text-blue-200 text-sm">Weather Map</div>
+                      <div className="flex gap-1">
+                        {[
+                          { key: 'precipitation', label: 'Rain' },
+                          { key: 'clouds', label: 'Clouds' },
+                          { key: 'wind', label: 'Wind' }
+                        ].map(layer => (
+                          <button
+                            key={layer.key}
+                            onClick={() => setMapLayer(layer.key)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                              mapLayer === layer.key 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                            }`}
+                          >
+                            {layer.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-lg border border-white/20">
+                      <iframe
+                        src={`https://openweathermap.org/weathermap?basemap=map&cities=false&layer=${mapLayer}&lat=${weatherCoords.lat}&lon=${weatherCoords.lon}&zoom=10`}
+                        className="w-full h-48 border-0"
+                        title="Weather Map"
+                        loading="lazy"
+                      />
+                      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
+                        {mapLayer === 'precipitation' ? 'Precipitation' : mapLayer}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-blue-200 mb-2">Duration & Distance</div>
