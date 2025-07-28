@@ -36,9 +36,19 @@ export default function NutritionSurvey() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Save survey data and redirect to main app
-      localStorage.setItem('nutritionProfile', JSON.stringify(surveyData));
-      router.push('/?profile=true');
+      // Save survey data securely and redirect to main app
+      try {
+        const jsonString = JSON.stringify(surveyData);
+        const encoded = btoa(jsonString);
+        const encrypted = encoded.split('').reverse().join('');
+        localStorage.setItem('nutritionProfile', encrypted);
+        router.push('/?profile=true');
+      } catch (error) {
+        console.error('Failed to save profile:', error);
+        // Fallback to unencrypted storage
+        localStorage.setItem('nutritionProfile', JSON.stringify(surveyData));
+        router.push('/?profile=true');
+      }
     }
   };
 

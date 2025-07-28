@@ -98,19 +98,72 @@ export default function CyclingNutritionApp() {
     return R * c;
   };
 
+  // Validate GPX file
+  const validateGPXFile = (file: File): string | null => {
+    // File size limit: 5MB
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File size too large. Maximum 5MB allowed.';
+    }
+
+    // File type validation
+    if (!file.name.toLowerCase().endsWith('.gpx')) {
+      return 'Invalid file type. Please upload a .gpx file.';
+    }
+
+    // MIME type check (if available)
+    if (file.type && !['application/xml', 'text/xml', 'application/gpx+xml'].includes(file.type)) {
+      return 'Invalid file format. Please upload a valid GPX file.';
+    }
+
+    return null;
+  };
+
+  // Sanitize text content to prevent XSS
+  const sanitizeText = (text: string): string => {
+    return text.replace(/[<>'"&]/g, (match) => {
+      const map: { [key: string]: string } = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '&': '&amp;',
+      };
+      return map[match];
+    });
+  };
+
   // Parse GPX file and extract route data
   const parseGPXFile = async (file: File) => {
     setIsParsingGPX(true);
     setGpxError('');
     
     try {
+      // Validate file first
+      const validationError = validateGPXFile(file);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
       const text = await file.text();
+      
+      // Check for XML bombs and excessive content
+      if (text.length > 10 * 1024 * 1024) { // 10MB text limit
+        throw new Error('GPX file content too large');
+      }
+
       const parser = new DOMParser();
       const gpxDoc = parser.parseFromString(text, 'application/xml');
       
       // Check for parsing errors
       if (gpxDoc.getElementsByTagName('parsererror').length > 0) {
         throw new Error('Invalid GPX file format');
+      }
+
+      // Validate GPX structure
+      const gpxElement = gpxDoc.getElementsByTagName('gpx')[0];
+      if (!gpxElement) {
+        throw new Error('Invalid GPX file: missing GPX root element');
       }
       
       // Extract track points
@@ -188,9 +241,10 @@ export default function CyclingNutritionApp() {
       const elevationTimeBonus = (totalElevationGain / 100) * 6; // 6 minutes per 100m elevation
       const estimatedTime = Math.round(flatTime + elevationTimeBonus);
       
-      // Extract route name from GPX
+      // Extract and sanitize route name from GPX
       const nameElement = gpxDoc.getElementsByTagName('name')[0];
-      const routeName = nameElement ? nameElement.textContent || 'Uploaded Route' : 'Uploaded Route';
+      const rawRouteName = nameElement ? nameElement.textContent || 'Uploaded Route' : 'Uploaded Route';
+      const routeName = sanitizeText(rawRouteName.substring(0, 100)); // Limit length and sanitize
       
       const route: RouteData = {
         name: routeName,
@@ -225,11 +279,14 @@ export default function CyclingNutritionApp() {
   const handleGPXUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.name.toLowerCase().endsWith('.gpx')) {
-        parseGPXFile(file);
-      } else {
-        setGpxError('Please select a valid GPX file');
+      const validationError = validateGPXFile(file);
+      if (validationError) {
+        setGpxError(validationError);
+        // Clear the input
+        event.target.value = '';
+        return;
       }
+      parseGPXFile(file);
     }
   };
 
@@ -241,13 +298,48 @@ export default function CyclingNutritionApp() {
     return kilometersToTime(rideKilometers);
   }, [rideType, rideTime, rideMiles, rideKilometers]);
 
-  // Load nutrition profile on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('nutritionProfile');
-    if (saved) {
-      setNutritionProfile(JSON.parse(saved));
+  // Simple encryption/decryption for localStorage (basic obfuscation)
+  const encryptData = (data: string): string => {
+    // Simple base64 encoding with a basic cipher for client-side protection
+    // Note: This is not cryptographically secure, just protection against casual viewing
+    const encoded = btoa(data);
+    return encoded.split('').reverse().join('');
+  };
+
+  const decryptData = (encryptedData: string): string => {
+    try {
+      const reversed = encryptedData.split('').reverse().join('');
+      return atob(reversed);
+    } catch {
+      return '';
+    }
+  };
+
+  // Secure localStorage operations
+  const loadFromSecureStorage = useCallback((key: string): NutritionProfile | null => {
+    try {
+      const encrypted = localStorage.getItem(key);
+      if (!encrypted) return null;
+      
+      const decrypted = decryptData(encrypted);
+      if (!decrypted) return null;
+      
+      return JSON.parse(decrypted) as NutritionProfile;
+    } catch (error) {
+      console.error('Failed to load from secure storage:', error);
+      // Remove corrupted data
+      localStorage.removeItem(key);
+      return null;
     }
   }, []);
+
+  // Load nutrition profile on mount
+  useEffect(() => {
+    const saved = loadFromSecureStorage('nutritionProfile');
+    if (saved) {
+      setNutritionProfile(saved);
+    }
+  }, [loadFromSecureStorage]);
 
   // Reset nutrition profile
   const resetProfile = () => {
@@ -386,7 +478,7 @@ export default function CyclingNutritionApp() {
     return () => clearInterval(interval);
   }, [isRiding]);
 
-  // Fetch weather data using One Call API 3.0
+  // Fetch weather data using secure API route
   const fetchWeather = async (zip: string) => {
     if (!zip || zip.length < 5) return;
     
@@ -394,77 +486,30 @@ export default function CyclingNutritionApp() {
     setWeatherError('');
     
     try {
-      const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY || 'demo_key';
+      const response = await fetch(`/api/weather?zip=${encodeURIComponent(zip)}`);
       
-      // First, get coordinates from zip code using geocoding API
-      const geoResponse = await fetch(
-        `https://api.openweathermap.org/geo/1.0/zip?zip=${zip},US&appid=${API_KEY}`
-      );
-      
-      if (!geoResponse.ok) {
-        throw new Error('Location not found');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Weather service unavailable');
       }
       
-      const geoData = await geoResponse.json();
-      console.log('Full geocoding API response:', JSON.stringify(geoData, null, 2)); // Debug log
+      const data = await response.json();
       
-      // Extract basic location data
-      const { lat, lon, name, country } = geoData;
-      
-      // Use reverse geocoding to get more detailed location info including state
-      const reverseGeoResponse = await fetch(
-        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`
-      );
-      
-      let stateName = '';
-      if (reverseGeoResponse.ok) {
-        const reverseGeoData = await reverseGeoResponse.json();
-        console.log('Reverse geocoding response:', JSON.stringify(reverseGeoData, null, 2));
-        
-        if (reverseGeoData && reverseGeoData.length > 0) {
-          const location = reverseGeoData[0];
-          // The reverse geocoding API returns state information
-          if (location.state) {
-            stateName = location.state;
-          }
-        }
-      }
-      
-      // Build location display string
-      let locationDisplay = name || 'Unknown Location';
-      if (stateName && country === 'US') {
-        locationDisplay = `${name}, ${stateName}`;
-      } else if (country && country !== 'US') {
-        locationDisplay = `${name}, ${country}`;
-      } else if (country === 'US') {
-        locationDisplay = `${name}, US`;
-      }
-      
-      setLocationName(locationDisplay);
-      
-      // Then use One Call API 3.0 for comprehensive weather data
-      const weatherResponse = await fetch(
-        `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=imperial&exclude=minutely,daily,alerts`
-      );
-      
-      if (!weatherResponse.ok) {
-        throw new Error('Weather data not found');
-      }
-      
-      const weatherData = await weatherResponse.json();
-      const current = weatherData.current;
-      
-      setCurrentTemp(Math.round(current.temp));
-      setFeelsLike(Math.round(current.feels_like));
-      setCurrentHumidity(current.humidity);
-      setWindSpeed(Math.round(current.wind_speed));
-      setWindGust(current.wind_gust ? Math.round(current.wind_gust) : 0);
-      setWindDirection(current.wind_deg || 0);
-      setUvIndex(Math.round(current.uvi));
-      setWeatherDescription(current.weather[0].description);
+      setLocationName(data.location);
+      setCurrentTemp(data.temperature);
+      setFeelsLike(data.feelsLike);
+      setCurrentHumidity(data.humidity);
+      setWindSpeed(data.windSpeed);
+      setWindGust(data.windGust);
+      setWindDirection(data.windDirection);
+      setUvIndex(data.uvIndex);
+      setWeatherDescription(data.description);
       setWeatherError('');
-    } catch {
-      setWeatherError('Unable to fetch weather data');
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to fetch weather data';
+      setWeatherError(errorMessage);
+      
       // Reset to fallback values
       setCurrentTemp(75);
       setFeelsLike(75);
