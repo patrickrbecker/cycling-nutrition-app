@@ -31,11 +31,14 @@ export default function CyclingNutritionApp() {
   const [completedAlerts, setCompletedAlerts] = useState<Set<number>>(new Set());
   const [currentTemp, setCurrentTemp] = useState<number>(75); // Fahrenheit
   const [currentHumidity, setCurrentHumidity] = useState<number>(50); // Percentage
+  const [windSpeed, setWindSpeed] = useState<number>(0); // mph
+  const [uvIndex, setUvIndex] = useState<number>(0);
+  const [feelsLike, setFeelsLike] = useState<number>(75); // Fahrenheit
+  const [weatherDescription, setWeatherDescription] = useState<string>('');
   const [zipCode, setZipCode] = useState<string>('');
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
   const [weatherError, setWeatherError] = useState<string>('');
   const [weatherCoords, setWeatherCoords] = useState<{lat: number, lon: number} | null>(null);
-  const [mapLayer, setMapLayer] = useState<string>('precipitation_new');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
 
   // Convert miles to estimated time (assuming 14mph average)
@@ -43,12 +46,6 @@ export default function CyclingNutritionApp() {
     return Math.round((miles / 14) * 60); // 14mph = 4.29 minutes per mile
   };
 
-  // Convert lat/lon to tile coordinates for Maps API
-  const getTileCoordinates = (lat: number, lon: number, zoom: number) => {
-    const x = Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
-    const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
-    return { x, y };
-  };
 
   // Get effective ride duration for scheduling
   const getEffectiveRideTime = useCallback(() => {
@@ -146,7 +143,7 @@ export default function CyclingNutritionApp() {
     return () => clearInterval(interval);
   }, [isRiding]);
 
-  // Fetch weather data from OpenWeatherMap
+  // Fetch weather data using One Call API 3.0
   const fetchWeather = async (zip: string) => {
     if (!zip || zip.length < 5) return;
     
@@ -154,26 +151,50 @@ export default function CyclingNutritionApp() {
     setWeatherError('');
     
     try {
-      // Note: You'll need to get a free API key from openweathermap.org
       const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY || 'demo_key';
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?zip=${zip},US&appid=${API_KEY}&units=imperial`
+      
+      // First, get coordinates from zip code using geocoding API
+      const geoResponse = await fetch(
+        `https://api.openweathermap.org/geo/1.0/zip?zip=${zip},US&appid=${API_KEY}`
       );
       
-      if (!response.ok) {
+      if (!geoResponse.ok) {
+        throw new Error('Location not found');
+      }
+      
+      const geoData = await geoResponse.json();
+      const { lat, lon } = geoData;
+      
+      // Then use One Call API 3.0 for comprehensive weather data
+      const weatherResponse = await fetch(
+        `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=imperial&exclude=minutely,daily,alerts`
+      );
+      
+      if (!weatherResponse.ok) {
         throw new Error('Weather data not found');
       }
       
-      const data = await response.json();
-      setCurrentTemp(Math.round(data.main.temp));
-      setCurrentHumidity(data.main.humidity);
-      setWeatherCoords({ lat: data.coord.lat, lon: data.coord.lon });
+      const weatherData = await weatherResponse.json();
+      const current = weatherData.current;
+      
+      setCurrentTemp(Math.round(current.temp));
+      setFeelsLike(Math.round(current.feels_like));
+      setCurrentHumidity(current.humidity);
+      setWindSpeed(Math.round(current.wind_speed));
+      setUvIndex(Math.round(current.uvi));
+      setWeatherDescription(current.weather[0].description);
+      setWeatherCoords({ lat, lon });
       setWeatherError('');
     } catch {
       setWeatherError('Unable to fetch weather data');
-      setCurrentTemp(75); // fallback temperature
-      setCurrentHumidity(50); // fallback humidity
-      setWeatherCoords(null); // reset coordinates
+      // Reset to fallback values
+      setCurrentTemp(75);
+      setFeelsLike(75);
+      setCurrentHumidity(50);
+      setWindSpeed(0);
+      setUvIndex(0);
+      setWeatherDescription('');
+      setWeatherCoords(null);
     } finally {
       setIsLoadingWeather(false);
     }
@@ -369,110 +390,68 @@ export default function CyclingNutritionApp() {
                   Ride Forecast
                 </h3>
                 
-                {/* Weather Map */}
-                {weatherCoords && (
+                {/* Enhanced Weather Details */}
+                {currentTemp && (
                   <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="text-blue-200 text-sm">Weather Map</div>
-                      <div className="flex gap-1">
-                        {[
-                          { key: 'precipitation_new', label: 'Rain' },
-                          { key: 'clouds_new', label: 'Clouds' },
-                          { key: 'wind_new', label: 'Wind' }
-                        ].map(layer => (
-                          <button
-                            key={layer.key}
-                            onClick={() => setMapLayer(layer.key)}
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              mapLayer === layer.key 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-white/20 text-blue-200 hover:bg-white/30'
-                            }`}
-                          >
-                            {layer.label}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="text-blue-200 text-sm mb-3 flex items-center gap-2">
+                      Detailed Weather Conditions
+                      {weatherDescription && (
+                        <span className="text-xs bg-blue-600 px-2 py-1 rounded capitalize">
+                          {weatherDescription}
+                        </span>
+                      )}
                     </div>
-                    <div className="relative overflow-hidden rounded-lg border border-white/20 bg-gray-800">
-                      <div className="w-full h-48 relative">
-                        {(() => {
-                          const zoom = 8;
-                          const { x, y } = getTileCoordinates(weatherCoords.lat, weatherCoords.lon, zoom);
-                          
-                          // Add current time parameter for live data
-                          const currentTime = Math.floor(Date.now() / 1000);
-                          
-                          // Only use API 1.0 layers (API 2.0 not available in subscription)
-                          const layerMap: {[key: string]: string[]} = {
-                            'precipitation_new': ['precipitation_new', 'rain_new', 'rain', 'precipitation'],
-                            'clouds_new': ['clouds_new', 'clouds', 'temp_new', 'temperature'],
-                            'wind_new': ['wind_new', 'wind', 'pressure_new', 'pressure']
-                          };
-                          
-                          const layersToTry = layerMap[mapLayer] || [mapLayer];
-                          let currentLayerIndex = 0;
-                          
-                          const tryNextLayer = (img: HTMLImageElement) => {
-                            if (currentLayerIndex >= layersToTry.length) {
-                              // All layers failed
-                              img.style.display = 'none';
-                              const loadingDiv = img.nextElementSibling as HTMLElement;
-                              if (loadingDiv) {
-                                loadingDiv.innerHTML = `
-                                  <div>Weather map blank/unavailable</div>
-                                  <div class="text-xs mt-1 opacity-70">Tried layers: ${layersToTry.join(', ')}</div>
-                                  <div class="text-xs opacity-70">Coords: ${x},${y} (zoom ${zoom})</div>
-                                `;
-                                loadingDiv.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-800/75 text-yellow-300 text-sm';
-                              }
-                              return;
-                            }
-                            
-                            const currentLayer = layersToTry[currentLayerIndex];
-                            let url: string;
-                            
-                            // Only use Maps API 1.0 format (API 2.0 not available in subscription)
-                            url = `https://tile.openweathermap.org/map/${currentLayer}/${zoom}/${x}/${y}.png?appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
-                            
-                            console.log(`Trying weather map layer: ${currentLayer}, URL: ${url}`);
-                            currentLayerIndex++;
-                            img.src = url;
-                          };
-                          
-                          return (
-                            <img
-                              alt="Weather Map"
-                              className="w-full h-full object-cover"
-                              onLoad={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                const loadingDiv = target.nextElementSibling as HTMLElement;
-                                if (loadingDiv) loadingDiv.style.display = 'none';
-                                console.log(`Weather map loaded successfully: ${target.src}`);
-                              }}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                console.log(`Weather map failed to load: ${target.src}`);
-                                tryNextLayer(target);
-                              }}
-                              ref={(img) => {
-                                if (img && !img.src) {
-                                  tryNextLayer(img);
-                                }
-                              }}
-                            />
-                          );
-                        })()}
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800/75 text-white text-sm">
-                          Loading weather map...
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">Temperature</div>
+                        <div className="text-xl font-bold text-white">{currentTemp}°F</div>
+                        {feelsLike !== currentTemp && (
+                          <div className="text-xs text-blue-200">Feels like {feelsLike}°F</div>
+                        )}
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">Humidity</div>
+                        <div className="text-xl font-bold text-white">{currentHumidity}%</div>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">Wind Speed</div>
+                        <div className="text-xl font-bold text-white">{windSpeed} mph</div>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">UV Index</div>
+                        <div className={`text-xl font-bold ${
+                          uvIndex >= 8 ? 'text-red-300' : 
+                          uvIndex >= 6 ? 'text-orange-300' : 
+                          uvIndex >= 3 ? 'text-yellow-300' : 'text-green-300'
+                        }`}>
+                          {uvIndex}
+                        </div>
+                        <div className="text-xs text-blue-200">
+                          {uvIndex >= 8 ? 'Very High' : 
+                           uvIndex >= 6 ? 'High' : 
+                           uvIndex >= 3 ? 'Moderate' : 'Low'}
                         </div>
                       </div>
-                      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
-                        {mapLayer.includes('precipitation') ? 'Precipitation' : 
-                         mapLayer.includes('clouds') ? 'Clouds' : 'Wind'}
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">Cycling Conditions</div>
+                        <div className={`text-sm font-medium ${
+                          currentTemp > 85 || windSpeed > 20 ? 'text-red-300' : 
+                          currentTemp > 80 || windSpeed > 15 ? 'text-yellow-300' : 
+                          currentTemp < 50 ? 'text-blue-300' : 'text-green-300'
+                        }`}>
+                          {currentTemp > 85 || windSpeed > 20 ? 'Challenging' : 
+                           currentTemp > 80 || windSpeed > 15 ? 'Moderate' : 
+                           currentTemp < 50 ? 'Cool' : 'Excellent'}
+                        </div>
                       </div>
-                      <div className="absolute bottom-2 left-2 text-xs text-white/70">
-                        {weatherCoords.lat.toFixed(2)}, {weatherCoords.lon.toFixed(2)}
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <div className="text-blue-200 mb-1">Recommendations</div>
+                        <div className="text-xs text-white">
+                          {currentTemp > 85 ? 'Extra water, electrolytes' : 
+                           currentTemp > 80 ? 'Stay hydrated' : 
+                           currentTemp < 50 ? 'Layer clothing' : 
+                           uvIndex >= 6 ? 'Sunscreen recommended' : 'Perfect conditions'}
+                        </div>
                       </div>
                     </div>
                   </div>
