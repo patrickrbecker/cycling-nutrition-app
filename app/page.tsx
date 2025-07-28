@@ -392,8 +392,41 @@ export default function CyclingNutritionApp() {
       }
       
       const geoData = await geoResponse.json();
-      const { lat, lon, name, state } = geoData;
-      setLocationName(`${name}, ${state}`);
+      console.log('Full geocoding API response:', JSON.stringify(geoData, null, 2)); // Debug log
+      
+      // Extract basic location data
+      const { lat, lon, name, country } = geoData;
+      
+      // Use reverse geocoding to get more detailed location info including state
+      const reverseGeoResponse = await fetch(
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`
+      );
+      
+      let stateName = '';
+      if (reverseGeoResponse.ok) {
+        const reverseGeoData = await reverseGeoResponse.json();
+        console.log('Reverse geocoding response:', JSON.stringify(reverseGeoData, null, 2));
+        
+        if (reverseGeoData && reverseGeoData.length > 0) {
+          const location = reverseGeoData[0];
+          // The reverse geocoding API returns state information
+          if (location.state) {
+            stateName = location.state;
+          }
+        }
+      }
+      
+      // Build location display string
+      let locationDisplay = name || 'Unknown Location';
+      if (stateName && country === 'US') {
+        locationDisplay = `${name}, ${stateName}`;
+      } else if (country && country !== 'US') {
+        locationDisplay = `${name}, ${country}`;
+      } else if (country === 'US') {
+        locationDisplay = `${name}, US`;
+      }
+      
+      setLocationName(locationDisplay);
       
       // Then use One Call API 3.0 for comprehensive weather data
       const weatherResponse = await fetch(
