@@ -676,7 +676,7 @@ export default function CyclingNutritionApp() {
               <div class="bottle-legend">
                   <div class="legend-item">
                       <div class="legend-bottle legend-sports"></div>
-                      <span>Sports Drink (950ml)</span>
+                      <span>Electrolyte Drink (950ml)</span>
                   </div>
                   <div class="legend-item">
                       <div class="legend-bottle legend-water"></div>
