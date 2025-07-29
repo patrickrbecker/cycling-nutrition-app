@@ -35,7 +35,7 @@ const getActiveFeatureFlags = (): string[] => {
 
 // Helper function to check if analytics tracking is allowed
 const canTrack = (): boolean => {
-  return typeof window !== 'undefined' && window.gtag && ConsentManager.canTrackAnalytics();
+  return typeof window !== 'undefined' && !!window.gtag && ConsentManager.canTrackAnalytics();
 };
 
 export const analytics = {
