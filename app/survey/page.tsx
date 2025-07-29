@@ -67,7 +67,7 @@ export default function NutritionSurvey() {
     return stepNames[step] || `step_${step}`;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
