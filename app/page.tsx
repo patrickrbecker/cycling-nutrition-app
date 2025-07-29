@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw, Upload, MapPin } from 'lucide-react';
 import Script from 'next/script';
 import Footer from './components/Footer';
+import FeatureFlagDebugPanel from './components/FeatureFlagDebugPanel';
 import { analytics } from './utils/analytics';
+import { useFeatureFlag, trackVariantExposure } from './utils/flags';
 
 interface FuelAlert {
   time: number; // minutes
@@ -38,6 +40,11 @@ interface RouteData {
 }
 
 export default function CyclingNutritionApp() {
+  // Feature flags for A/B testing
+  const enhancedWeatherWidget = useFeatureFlag('enhancedWeatherWidget');
+  const improvedSurveyFlow = useFeatureFlag('improvedSurveyFlow');
+  const advancedNutritionRecommendations = useFeatureFlag('advancedNutritionRecommendations');
+
   const [rideTime, setRideTime] = useState<number>(60); // minutes
   const [rideMiles, setRideMiles] = useState<number>(20); // miles
   const [rideKilometers, setRideKilometers] = useState<number>(32); // kilometers
@@ -59,6 +66,7 @@ export default function CyclingNutritionApp() {
   const [weatherError, setWeatherError] = useState<string>('');
   const [unitSystem, setUnitSystem] = useState<'US' | 'UK'>('US');
   const [nutritionProfile, setNutritionProfile] = useState<NutritionProfile | null>(null);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isParsingGPX, setIsParsingGPX] = useState<boolean>(false);
   const [gpxError, setGpxError] = useState<string>('');
@@ -363,6 +371,19 @@ export default function CyclingNutritionApp() {
       referrer: document.referrer || 'direct'
     });
   }, [loadFromSecureStorage]);
+
+  // Debug panel keyboard shortcut (Ctrl+Shift+F)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'F') {
+        event.preventDefault();
+        setShowDebugPanel(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Reset nutrition profile
   const resetProfile = () => {
@@ -1642,6 +1663,14 @@ export default function CyclingNutritionApp() {
                 For rides longer than 60-90 minutes, aim for <strong>30-60g of carbohydrates per hour</strong>. 
                 Start fueling early, around 20-30 minutes into your ride, and continue every 15-30 minutes. 
                 Our calculator provides personalized recommendations based on your intensity and weather conditions.
+                {advancedNutritionRecommendations && (
+                  <>
+                    <br /><br />
+                    <strong className="text-yellow-300">Advanced Tip:</strong> For rides over 3 hours, 
+                    consider multi-transportable carbs (glucose + fructose) for enhanced absorption rates 
+                    up to 90g/hour. Your gut can be trained to handle higher amounts through practice.
+                  </>
+                )}
               </p>
             </div>
 
@@ -1711,14 +1740,25 @@ export default function CyclingNutritionApp() {
             <a 
               href="/survey"
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition-colors text-lg text-center"
+              onClick={() => {
+                trackVariantExposure('cta_button_test', improvedSurveyFlow ? 'variant_b' : 'variant_a', {
+                  location: 'homepage_faq_section'
+                });
+              }}
             >
-              Get Your Free Nutrition Plan
+              {improvedSurveyFlow ? 'Start Your Personalized Plan Now' : 'Get Your Free Nutrition Plan'}
             </a>
           </div>
         </div>
       </section>
 
       <Footer />
+      
+      {/* Feature Flag Debug Panel */}
+      <FeatureFlagDebugPanel 
+        isVisible={showDebugPanel}
+        onClose={() => setShowDebugPanel(false)}
+      />
     </>
   );
 }

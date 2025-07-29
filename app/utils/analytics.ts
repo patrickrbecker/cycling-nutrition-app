@@ -1,12 +1,39 @@
-// GA4 Analytics Utility Functions
+// GA4 Analytics Utility Functions with Feature Flag Integration
 declare global {
   interface Window {
     gtag: (command: string, targetId: string, config?: Record<string, unknown>) => void;
+    va?: (command: string, event: string, properties?: Record<string, unknown>) => void;
   }
 }
 
+// Helper function to get active feature flags for analytics
+const getActiveFeatureFlags = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  
+  const flags: string[] = [];
+  const flagNames = [
+    'enhancedWeatherWidget',
+    'improvedSurveyFlow', 
+    'advancedNutritionRecommendations',
+    'premiumFeatures'
+  ];
+
+  flagNames.forEach(flagName => {
+    try {
+      const stored = localStorage.getItem(`flag_${flagName}`);
+      if (stored && JSON.parse(stored) === true) {
+        flags.push(flagName);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  });
+
+  return flags;
+};
+
 export const analytics = {
-  // Survey completion tracking
+  // Survey completion tracking with feature flags
   trackSurveyCompleted: (profileData: {
     weight: number;
     sweatRate: string;
@@ -15,6 +42,8 @@ export const analytics = {
     name?: string;
   }) => {
     if (typeof window !== 'undefined' && window.gtag) {
+      const activeFlags = getActiveFeatureFlags();
+      
       window.gtag('event', 'survey_completed', {
         event_category: 'engagement',
         event_label: 'nutrition_profile_created',
@@ -23,9 +52,20 @@ export const analytics = {
           sweat_rate: profileData.sweatRate,
           intensity_level: profileData.intensity,
           experience_level: profileData.experienceLevel,
-          has_name: !!profileData.name
+          has_name: !!profileData.name,
+          active_feature_flags: activeFlags.join(','),
+          feature_flag_count: activeFlags.length
         }
       });
+
+      // Also track with Vercel Analytics if available
+      if (typeof window.va !== 'undefined') {
+        window.va('track', 'survey_completed', {
+          weight: profileData.weight,
+          sweat_rate: profileData.sweatRate,
+          flags: activeFlags
+        });
+      }
     }
   },
 
