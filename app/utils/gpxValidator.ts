@@ -165,7 +165,6 @@ export class GPXValidator {
       // Count nesting depth to prevent deeply nested XML attacks
       let maxDepth = 0;
       let currentDepth = 0;
-      let openTags = 0;
 
       for (let i = 0; i < content.length; i++) {
         if (content[i] === '<') {
@@ -173,7 +172,6 @@ export class GPXValidator {
             currentDepth--;
           } else if (content[i + 1] !== '!' && content[i + 1] !== '?') {
             currentDepth++;
-            openTags++;
             maxDepth = Math.max(maxDepth, currentDepth);
           }
         }
@@ -199,7 +197,7 @@ export class GPXValidator {
       }
 
       return { isValid: true };
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         error: 'Failed to validate XML structure'
@@ -276,7 +274,7 @@ export class GPXValidator {
       }
 
       return { isValid: true };
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         error: 'Failed to validate GPX structure'

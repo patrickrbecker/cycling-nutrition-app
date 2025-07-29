@@ -43,7 +43,6 @@ interface RouteData {
 
 export default function CyclingNutritionApp() {
   // Feature flags for A/B testing
-  const enhancedWeatherWidget = useFeatureFlag('enhancedWeatherWidget');
   const improvedSurveyFlow = useFeatureFlag('improvedSurveyFlow');
   const advancedNutritionRecommendations = useFeatureFlag('advancedNutritionRecommendations');
 
@@ -133,19 +132,6 @@ export default function CyclingNutritionApp() {
     return null;
   };
 
-  // Sanitize text content to prevent XSS
-  const sanitizeText = (text: string): string => {
-    return text.replace(/[<>'"&]/g, (match) => {
-      const map: { [key: string]: string } = {
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#x27;',
-        '&': '&amp;',
-      };
-      return map[match];
-    });
-  };
 
   // Parse GPX file and extract route data
   const parseGPXFile = useCallback(async (file: File) => {

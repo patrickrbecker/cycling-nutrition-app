@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Shield, Eye, Settings } from 'lucide-react';
+import { X, Shield, Settings } from 'lucide-react';
 
 interface ConsentSettings {
   essential: boolean;

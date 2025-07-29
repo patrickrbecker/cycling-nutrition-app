@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFeatureFlag, trackVariantExposure } from '../utils/flags';
+import { trackVariantExposure } from '../utils/flags';
 
 interface FeatureFlagDebugPanelProps {
   isVisible: boolean;
@@ -36,7 +36,7 @@ export default function FeatureFlagDebugPanel({ isVisible, onClose }: FeatureFla
     if (isVisible) {
       loadFlags();
     }
-  }, [isVisible]);
+  }, [isVisible, flags]);
 
   const toggleFlag = (flagName: keyof typeof flags) => {
     const newValue = !flags[flagName];
