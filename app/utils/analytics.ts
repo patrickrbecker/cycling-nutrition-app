@@ -3,7 +3,6 @@ import { ConsentManager } from './consent';
 
 declare global {
   interface Window {
-    gtag: (command: string, targetId: string, config?: Record<string, unknown>) => void;
     va?: (command: string, event: string, properties?: Record<string, unknown>) => void;
   }
 }
