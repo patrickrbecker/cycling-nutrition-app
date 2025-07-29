@@ -362,181 +362,344 @@ export default function CyclingNutritionApp() {
     setNutritionProfile(null);
   };
 
-  // Generate printable fuel schedule for handlebars
+  // Generate printable fuel schedule for handlebars using your exact HTML structure
   const printFuelSchedule = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const routeInfo = routeData 
-      ? `${routeData.name} - ${unitSystem === 'US' ? (routeData.distance * 0.621371).toFixed(1) + ' miles' : routeData.distance.toFixed(1) + ' km'}`
-      : `${rideType === 'time' ? formatTime(rideTime) : 
-          rideType === 'miles' ? rideMiles + ' miles' : 
-          rideKilometers + ' km'} Ride`;
+    // Calculate ride details
+    const riderName = nutritionProfile?.name || 'Cyclist';
+    const totalDistanceMiles = rideType === 'miles' ? rideMiles : 
+                              rideType === 'kilometers' ? (rideKilometers * 0.621371) :
+                              routeData ? (routeData.distance * 0.621371) : 
+                              (getEffectiveRideTime() / 60 * 14); // Assume 14mph average
+    
+    const estimatedHours = Math.round((getEffectiveRideTime() / 60) * 10) / 10;
+    const totalFluidML = Math.round(estimatedHours * 600); // ~600ml per hour
+    const totalCarbsG = fuelSchedule.filter(a => a.type === 'carbs').length * 15; // ~15g per gel
 
-    const weatherInfo = currentTemp 
-      ? `${convertTemp(currentTemp)}${getTempUnit()}, ${currentHumidity}% humidity`
-      : 'Weather data not available';
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Cycling Fuel Schedule - ${routeInfo}</title>
-        <style>
-          @page { 
-            size: A4 portrait; 
-            margin: 0.5in; 
-          }
-          @media print {
-            body { -webkit-print-color-adjust: exact; }
-          }
-          body {
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            line-height: 1.3;
-            margin: 0;
-            padding: 20px;
-            background: white;
-            color: black;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-          }
-          .title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-          }
-          .route-info {
-            font-size: 14px;
-            margin-bottom: 3px;
-          }
-          .weather-info {
-            font-size: 11px;
-            color: #666;
-          }
-          .schedule-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-          }
-          .schedule-table th,
-          .schedule-table td {
-            border: 1px solid #333;
-            padding: 8px 6px;
-            text-align: left;
-          }
-          .schedule-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            font-size: 11px;
-          }
-          .time-col { width: 15%; font-weight: bold; }
-          .fuel-col { width: 85%; }
-          .carbs-row { background-color: #fff3cd; }
-          .electrolytes-row { background-color: #d4edda; }
-          .critical-row { 
-            background-color: #f8d7da; 
-            font-weight: bold;
-          }
-          .notes {
-            font-size: 10px;
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-          }
-          .notes h4 {
-            margin: 0 0 8px 0;
-            font-size: 11px;
-          }
-          .compact {
-            page-break-inside: avoid;
-          }
-          .legend {
-            display: flex;
-            justify-content: space-around;
-            margin: 10px 0;
-            font-size: 10px;
-          }
-          .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-          }
-          .legend-color {
-            width: 15px;
-            height: 15px;
-            border: 1px solid #333;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">🚴‍♂️ Cycling Fuel Schedule</div>
-          <div class="route-info">${routeInfo}</div>
-          <div class="weather-info">${weatherInfo}</div>
-        </div>
-
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #fff3cd;"></div>
-            <span>Carbohydrates</span>
+    // Generate timeline rows based on fuel schedule
+    let timelineRows = '';
+    
+    // Start row
+    timelineRows += `
+      <div class="timeline-row">
+          <div class="time">0'</div>
+          <div class="nutrition">
+              <div class="bottle">
+                  <div class="bottle-liquid heed-liquid level-100"></div>
+              </div>
+              <div class="bottle">
+                  <div class="bottle-liquid water-liquid level-100"></div>
+              </div>
+              <span style="font-size: 10px; color: #666;">(start full)</span>
           </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #d4edda;"></div>
-            <span>Electrolytes</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #f8d7da;"></div>
-            <span>Pre-Climb</span>
-          </div>
-        </div>
-
-        <table class="schedule-table">
-          <thead>
-            <tr>
-              <th class="time-col">Time</th>
-              <th class="fuel-col">Fuel / Hydration</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${fuelSchedule.map(alert => `
-              <tr class="compact ${
-                alert.priority === 'critical' ? 'critical-row' :
-                alert.type === 'carbs' ? 'carbs-row' : 'electrolytes-row'
-              }">
-                <td class="time-col">${formatTime(alert.time)}</td>
-                <td class="fuel-col">${alert.amount}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <div class="notes">
-          <h4>📋 Pre-Ride Checklist:</h4>
-          <div>• Eat 2-3 hours before: Oats + fruit + coffee</div>
-          <div>• Start with sports drink (not plain water)</div>
-          <div>• Pack: ${Math.ceil(fuelSchedule.filter(a => a.type === 'carbs').length / 2)} gels/bars, electrolyte tabs</div>
-          ${currentTemp > 80 ? '<div>• 🌡️ Hot day: Extra electrolytes + 25% more fluid</div>' : ''}
-          ${routeData && routeData.elevationGain > 500 ? '<div>• 🏔️ Hilly route: Extra carbs before major climbs</div>' : ''}
-          
-          <h4 style="margin-top: 10px;">⚡ Quick Tips:</h4>
-          <div>• Set timer/alerts on your cycling computer</div>
-          <div>• Drink before you're thirsty, eat before you're hungry</div>
-          <div>• Start fueling early - easier than catching up later</div>
-          ${nutritionProfile?.giSensitivity === 'sensitive' ? '<div>• Sensitive stomach: Dilute sports drinks if needed</div>' : ''}
-        </div>
-
-        <div style="text-align: center; margin-top: 15px; font-size: 10px; color: #666;">
-          Generated by Cycling Fuel Planner - ${new Date().toLocaleDateString()}
-        </div>
-      </body>
-      </html>
+      </div>
     `;
+
+    // Generate rows from fuel schedule with decreasing bottle levels
+    let currentHeedLevel = 100;
+    let currentWaterLevel = 100;
+    
+    fuelSchedule.forEach((alert) => {
+      if (alert.type === 'carbs') {
+        // Decrease bottle levels over time
+        const timeProgress = alert.time / getEffectiveRideTime();
+        currentHeedLevel = Math.max(10, Math.round((1 - timeProgress * 0.8) * 100));
+        currentWaterLevel = Math.max(10, Math.round((1 - timeProgress * 0.7) * 100));
+        
+        // Determine bottle level classes
+        const heedClass = Math.round(currentHeedLevel / 10) * 10;
+        const waterClass = Math.round(currentWaterLevel / 10) * 10;
+        
+        // Format time
+        const timeStr = alert.time >= 60 ? 
+          `${Math.floor(alert.time/60)}h${alert.time%60 > 0 ? (alert.time%60).toString().padStart(2, '0') : ''}` : 
+          `${alert.time}'`;
+
+        timelineRows += `
+          <div class="timeline-row">
+              <div class="time">${timeStr}</div>
+              <div class="nutrition">
+                  <div class="bottle">
+                      <div class="bottle-liquid heed-liquid level-${heedClass}"></div>
+                  </div>
+                  <div class="bottle">
+                      <div class="bottle-liquid water-liquid level-${waterClass}"></div>
+                  </div>
+                  <div class="gel">½ GEL</div>
+              </div>
+          </div>
+        `;
+      }
+      
+      // Add hot weather electrolyte row if temperature is high
+      if (alert.type === 'electrolytes' && currentTemp > 80) {
+        const timeStr = alert.time >= 60 ? 
+          `${Math.floor(alert.time/60)}h${alert.time%60 > 0 ? (alert.time%60).toString().padStart(2, '0') : ''}` : 
+          `${alert.time}'`;
+          
+        timelineRows += `
+          <div class="timeline-row hot-weather">
+              <div class="time">${timeStr}</div>
+              <div class="nutrition">
+                  <div class="chews">2X CHEWS</div>
+                  <span style="font-size: 10px; color: #666;">(hot days only)</span>
+              </div>
+          </div>
+        `;
+      }
+    });
+
+    const printContent = `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${Math.round(totalDistanceMiles)}-Mile Cycling Nutrition Timeline</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              background-color: #f0f0f0;
+              margin: 0;
+              padding: 20px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+          }
+          
+          .nutrition-chart {
+              background-color: white;
+              border: 3px solid #333;
+              border-radius: 10px;
+              padding: 20px;
+              width: 350px;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          }
+          
+          .header {
+              text-align: center;
+              margin-bottom: 20px;
+              padding: 10px;
+              background-color: #e8e8e8;
+              border-radius: 5px;
+          }
+          
+          .rider-name {
+              font-size: 18px;
+              font-weight: bold;
+              color: #333;
+              margin-bottom: 5px;
+          }
+          
+          .distance {
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 5px;
+          }
+          
+          .bottle-legend {
+              display: flex;
+              justify-content: center;
+              gap: 20px;
+              font-size: 11px;
+              color: #666;
+              margin-bottom: 10px;
+          }
+          
+          .legend-item {
+              display: flex;
+              align-items: center;
+              gap: 5px;
+          }
+          
+          .legend-bottle {
+              width: 15px;
+              height: 20px;
+              border-radius: 3px 3px 8px 8px;
+              border: 1px solid #333;
+          }
+          
+          .legend-heed {
+              background: linear-gradient(180deg, #FF8C00 0%, #FF6600 100%);
+          }
+          
+          .legend-water {
+              background: linear-gradient(180deg, #87CEEB 0%, #4682B4 100%);
+          }
+          
+          .column-headers {
+              display: flex;
+              justify-content: space-between;
+              font-weight: bold;
+              font-size: 14px;
+              color: #666;
+              padding: 5px 0;
+              border-bottom: 2px solid #ccc;
+              margin-bottom: 10px;
+          }
+          
+          .timeline-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 8px 5px;
+              border-bottom: 1px solid #eee;
+              min-height: 40px;
+          }
+          
+          .time {
+              font-weight: bold;
+              font-size: 16px;
+              color: #333;
+              width: 60px;
+          }
+          
+          .nutrition {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex: 1;
+              justify-content: center;
+          }
+          
+          .bottle {
+              width: 25px;
+              height: 35px;
+              background-color: #f8f8f8;
+              border-radius: 5px 5px 15px 15px;
+              position: relative;
+              border: 2px solid #333;
+              overflow: hidden;
+          }
+          
+          .bottle::before {
+              content: '';
+              position: absolute;
+              top: -5px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 8px;
+              height: 8px;
+              background-color: #333;
+              border-radius: 2px;
+              z-index: 3;
+          }
+          
+          .bottle-liquid {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              border-radius: 0 0 13px 13px;
+              transition: height 0.3s ease;
+          }
+          
+          .heed-liquid {
+              background: linear-gradient(180deg, #FF8C00 0%, #FF6600 100%);
+          }
+          
+          .water-liquid {
+              background: linear-gradient(180deg, #87CEEB 0%, #4682B4 100%);
+          }
+          
+          .level-100 { height: 100%; }
+          .level-90 { height: 90%; }
+          .level-80 { height: 80%; }
+          .level-70 { height: 70%; }
+          .level-60 { height: 60%; }
+          .level-50 { height: 50%; }
+          .level-40 { height: 40%; }
+          .level-30 { height: 30%; }
+          .level-20 { height: 20%; }
+          .level-10 { height: 10%; }
+          
+          .gel {
+              background: linear-gradient(45deg, #FFD700, #FFA500);
+              color: #333;
+              padding: 4px 8px;
+              border-radius: 8px;
+              font-size: 10px;
+              font-weight: bold;
+              border: 2px solid #333;
+              text-align: center;
+              min-width: 30px;
+          }
+          
+          .chews {
+              background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+              color: white;
+              padding: 4px 6px;
+              border-radius: 6px;
+              font-size: 9px;
+              font-weight: bold;
+              border: 2px solid #333;
+              text-align: center;
+          }
+          
+          .finish {
+              background-color: #ff4444;
+              color: white;
+              text-align: center;
+              padding: 10px;
+              font-weight: bold;
+              font-size: 16px;
+              border-radius: 5px;
+              margin-top: 10px;
+          }
+          
+          .hot-weather {
+              background-color: #fff3cd;
+              border-left: 4px solid #ff6b6b;
+          }
+          
+          .note {
+              text-align: center;
+              margin-top: 10px;
+              font-size: 11px;
+              color: #666;
+              padding: 8px;
+              background-color: #f8f9fa;
+              border-radius: 5px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="nutrition-chart">
+          <div class="header">
+              <div class="rider-name">${riderName}</div>
+              <div class="distance">${Math.round(totalDistanceMiles)}-Mile Ride (~${estimatedHours} hours)</div>
+              <div class="bottle-legend">
+                  <div class="legend-item">
+                      <div class="legend-bottle legend-heed"></div>
+                      <span>HEED (950ml)</span>
+                  </div>
+                  <div class="legend-item">
+                      <div class="legend-bottle legend-water"></div>
+                      <span>Water (950ml)</span>
+                  </div>
+              </div>
+              <div class="column-headers">
+                  <span>TIME</span>
+                  <span>HYDRATION + NUTRITION</span>
+              </div>
+          </div>
+          
+          ${timelineRows}
+          
+          <div class="finish">
+              FINISH (${estimatedHours}h)
+          </div>
+          
+          <div class="note">
+              <strong>Total: ${totalFluidML}ml fluid + ${totalCarbsG}g carbs</strong><br>
+              Perfect for ${Math.round(totalDistanceMiles)}-mile efforts<br>
+              Early fueling for sustained energy
+          </div>
+      </div>
+  </body>
+  </html>`;
 
     printWindow.document.write(printContent);
     printWindow.document.close();
