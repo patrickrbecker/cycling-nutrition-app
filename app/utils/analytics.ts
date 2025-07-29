@@ -1,4 +1,6 @@
-// GA4 Analytics Utility Functions with Feature Flag Integration
+// GA4 Analytics Utility Functions with Feature Flag Integration and Consent Management
+import { ConsentManager } from './consent';
+
 declare global {
   interface Window {
     gtag: (command: string, targetId: string, config?: Record<string, unknown>) => void;
@@ -32,8 +34,13 @@ const getActiveFeatureFlags = (): string[] => {
   return flags;
 };
 
+// Helper function to check if analytics tracking is allowed
+const canTrack = (): boolean => {
+  return typeof window !== 'undefined' && window.gtag && ConsentManager.canTrackAnalytics();
+};
+
 export const analytics = {
-  // Survey completion tracking with feature flags
+  // Survey completion tracking with feature flags and consent
   trackSurveyCompleted: (profileData: {
     weight: number;
     sweatRate: string;
@@ -41,7 +48,7 @@ export const analytics = {
     experienceLevel: string;
     name?: string;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       const activeFlags = getActiveFeatureFlags();
       
       window.gtag('event', 'survey_completed', {
@@ -71,7 +78,7 @@ export const analytics = {
 
   // Survey step tracking
   trackSurveyStep: (stepNumber: number, stepName: string, timeSpent?: number) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'survey_step_completed', {
         event_category: 'engagement',
         event_label: `survey_step_${stepNumber}`,
@@ -86,7 +93,7 @@ export const analytics = {
 
   // Survey abandonment tracking
   trackSurveyAbandoned: (stepNumber: number, timeSpent: number) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'survey_abandoned', {
         event_category: 'engagement',
         event_label: `abandoned_at_step_${stepNumber}`,
@@ -105,7 +112,7 @@ export const analytics = {
     temperature: number;
     rideType: string;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'schedule_printed', {
         event_category: 'feature_usage',
         event_label: 'nutrition_schedule_print',
@@ -126,7 +133,7 @@ export const analytics = {
     cached: boolean;
     location: string;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'weather_data_loaded', {
         event_category: 'feature_usage',
         event_label: 'weather_integration_success',
@@ -147,7 +154,7 @@ export const analytics = {
     hasWeather: boolean;
     hasProfile: boolean;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'ride_started', {
         event_category: 'engagement',
         event_label: 'cycling_session_start',
@@ -167,7 +174,7 @@ export const analytics = {
     type: string;
     rideProgress: number;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'fuel_alert_completed', {
         event_category: 'engagement',
         event_label: 'nutrition_timing_followed',
@@ -186,7 +193,7 @@ export const analytics = {
     elevationGain: number;
     estimatedTime: number;
   }) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'gpx_file_uploaded', {
         event_category: 'feature_usage',
         event_label: 'route_analysis_used',
@@ -201,7 +208,7 @@ export const analytics = {
 
   // Feature engagement tracking
   trackFeatureUsage: (feature: string, action: string, value?: string | number) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'feature_used', {
         event_category: 'feature_usage',
         event_label: `${feature}_${action}`,
@@ -216,7 +223,7 @@ export const analytics = {
 
   // User journey tracking
   trackUserJourney: (journeyStep: string, metadata?: Record<string, unknown>) => {
-    if (typeof window !== 'undefined' && window.gtag) {
+    if (canTrack()) {
       window.gtag('event', 'user_journey', {
         event_category: 'user_flow',
         event_label: journeyStep,

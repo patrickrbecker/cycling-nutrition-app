@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, User, Droplets, Zap, AlertCircle, Coffee, Target
 import Head from 'next/head';
 import Footer from '../components/Footer';
 import { analytics } from '../utils/analytics';
+import { SecureStorage } from '../utils/encryption';
 
 interface SurveyData {
   weight: number;
@@ -79,22 +80,14 @@ export default function NutritionSurvey() {
         name: surveyData.name
       });
 
-      // Save survey data securely and redirect to main app
+      // Save survey data securely using proper encryption
       try {
         const jsonString = JSON.stringify(surveyData);
-        // Multi-layer encryption: XOR with simple key, reverse, then base64 encode
-        const key = 'nutrition2025';
-        let step1 = '';
-        for (let i = 0; i < jsonString.length; i++) {
-          step1 += String.fromCharCode(jsonString.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-        }
-        const step2 = step1.split('').reverse().join('');
-        const encrypted = btoa(step2);
-        localStorage.setItem('nutritionProfile', encrypted);
+        await SecureStorage.setItem('nutritionProfile', jsonString);
         router.push('/?profile=true');
-      } catch {
-        // Failed to save profile with encryption - use fallback
-        // Fallback to unencrypted storage
+      } catch (error) {
+        console.error('Failed to save profile securely:', error);
+        // Fallback to unencrypted storage for backward compatibility
         localStorage.setItem('nutritionProfile', JSON.stringify(surveyData));
         router.push('/?profile=true');
       }

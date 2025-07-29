@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import ConsentBanner from "./components/ConsentBanner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -85,8 +86,21 @@ export default function RootLayout({
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            
+            // Set default consent state before GA loads
+            gtag('consent', 'default', {
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied',
+              'functionality_storage': 'granted',
+              'security_storage': 'granted',
+              'wait_for_update': 500
+            });
+            
             gtag('js', new Date());
-            gtag('config', 'G-P468QE4SW7');
+            gtag('config', 'G-P468QE4SW7', {
+              'anonymize_ip': true,
+              'cookie_flags': 'max-age=7200;secure;samesite=strict'
+            });
           `}
         </Script>
         <Script id="structured-data" type="application/ld+json" strategy="afterInteractive">
@@ -171,6 +185,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <ConsentBanner />
         <Analytics />
         <SpeedInsights />
       </body>

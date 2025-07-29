@@ -7,6 +7,8 @@ import Footer from './components/Footer';
 import FeatureFlagDebugPanel from './components/FeatureFlagDebugPanel';
 import { analytics } from './utils/analytics';
 import { useFeatureFlag, trackVariantExposure } from './utils/flags';
+import { SecureStorage } from './utils/encryption';
+import { GPXValidator } from './utils/gpxValidator';
 
 interface FuelAlert {
   time: number; // minutes
@@ -109,21 +111,23 @@ export default function CyclingNutritionApp() {
   };
 
   // Validate GPX file
-  const validateGPXFile = (file: File): string | null => {
-    // File size limit: 5MB
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      return 'File size too large. Maximum 5MB allowed.';
+  // Secure GPX file validation using comprehensive security checks
+  const validateGPXFile = async (file: File): Promise<string | null> => {
+    // Basic file validation
+    const fileValidation = GPXValidator.validateFile(file);
+    if (!fileValidation.isValid) {
+      return fileValidation.error || 'Invalid file';
     }
 
-    // File type validation
-    if (!file.name.toLowerCase().endsWith('.gpx')) {
-      return 'Invalid file type. Please upload a .gpx file.';
+    // Content validation for security threats
+    const contentValidation = await GPXValidator.validateContent(file);
+    if (!contentValidation.isValid) {
+      return contentValidation.error || 'Invalid file content';
     }
 
-    // MIME type check (if available)
-    if (file.type && !['application/xml', 'text/xml', 'application/gpx+xml'].includes(file.type)) {
-      return 'Invalid file format. Please upload a valid GPX file.';
+    // Log any warnings
+    if (contentValidation.warnings) {
+      console.warn('GPX validation warnings:', contentValidation.warnings);
     }
 
     return null;
@@ -149,8 +153,8 @@ export default function CyclingNutritionApp() {
     setGpxError('');
     
     try {
-      // Validate file first
-      const validationError = validateGPXFile(file);
+      // Validate file first with comprehensive security checks
+      const validationError = await validateGPXFile(file);
       if (validationError) {
         throw new Error(validationError);
       }
@@ -265,7 +269,7 @@ export default function CyclingNutritionApp() {
       // Extract and sanitize route name from GPX
       const nameElement = gpxDoc.getElementsByTagName('name')[0];
       const rawRouteName = nameElement ? nameElement.textContent || 'Uploaded Route' : 'Uploaded Route';
-      const routeName = sanitizeText(rawRouteName.substring(0, 100)); // Limit length and sanitize
+      const routeName = GPXValidator.sanitizeText(rawRouteName); // Use secure sanitization
       
       const route: RouteData = {
         name: routeName,
@@ -298,11 +302,11 @@ export default function CyclingNutritionApp() {
     }
   }, [unitSystem]);
 
-  // Handle GPX file upload
-  const handleGPXUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle GPX file upload with async validation
+  const handleGPXUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const validationError = validateGPXFile(file);
+      const validationError = await validateGPXFile(file);
       if (validationError) {
         setGpxError(validationError);
         // Clear the input
@@ -322,35 +326,15 @@ export default function CyclingNutritionApp() {
   }, [rideType, rideTime, rideMiles, rideKilometers]);
 
 
-  const decryptData = (encryptedData: string): string => {
+  // Secure localStorage operations using proper encryption
+  const loadFromSecureStorage = useCallback(async (key: string): Promise<NutritionProfile | null> => {
     try {
-      // Multi-layer decryption: base64 decode, reverse, then XOR with simple key
-      const step1 = atob(encryptedData);
-      const step2 = step1.split('').reverse().join('');
-      const key = 'nutrition2025'; // Simple XOR key
-      let result = '';
-      for (let i = 0; i < step2.length; i++) {
-        result += String.fromCharCode(step2.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-      }
-      return result;
-    } catch {
-      return '';
-    }
-  };
-
-
-  // Secure localStorage operations
-  const loadFromSecureStorage = useCallback((key: string): NutritionProfile | null => {
-    try {
-      const encrypted = localStorage.getItem(key);
-      if (!encrypted) return null;
-      
-      const decrypted = decryptData(encrypted);
+      const decrypted = await SecureStorage.getItem(key);
       if (!decrypted) return null;
       
       return JSON.parse(decrypted) as NutritionProfile;
-    } catch {
-      // Failed to load from secure storage - fallback to unencrypted
+    } catch (error) {
+      console.error('Failed to load from secure storage:', error);
       // Remove corrupted data
       localStorage.removeItem(key);
       return null;
@@ -359,17 +343,21 @@ export default function CyclingNutritionApp() {
 
   // Load nutrition profile on mount
   useEffect(() => {
-    const saved = loadFromSecureStorage('nutritionProfile');
-    if (saved) {
-      setNutritionProfile(saved);
-    }
+    const loadProfile = async () => {
+      const saved = await loadFromSecureStorage('nutritionProfile');
+      if (saved) {
+        setNutritionProfile(saved);
+      }
 
-    // Track page load and initial user state
-    analytics.trackUserJourney('homepage_loaded', {
-      has_stored_profile: !!saved,
-      device_type: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
-      referrer: document.referrer || 'direct'
-    });
+      // Track page load and initial user state
+      analytics.trackUserJourney('homepage_loaded', {
+        has_stored_profile: !!saved,
+        device_type: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+        referrer: document.referrer || 'direct'
+      });
+    };
+
+    loadProfile();
   }, [loadFromSecureStorage]);
 
   // Debug panel keyboard shortcut (Ctrl+Shift+F)
