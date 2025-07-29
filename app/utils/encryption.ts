@@ -20,7 +20,7 @@ export class SecureStorage {
   /**
    * Attempts to decrypt with various password strategies for backward compatibility
    */
-  private static async tryDecryptionPasswords(encryptedData: string): Promise<string> {
+  private static async tryDecryptionPasswords(_encryptedData: string): Promise<string> {
     const passwords = [
       'cycling-nutrition-secure-2025', // Legacy hardcoded password
       await this.generateSecurePassword() // New secure password (this will fail but maintains interface)

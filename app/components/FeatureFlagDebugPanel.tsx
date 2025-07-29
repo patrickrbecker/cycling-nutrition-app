@@ -9,10 +9,6 @@ interface FeatureFlagDebugPanelProps {
 }
 
 export default function FeatureFlagDebugPanel({ isVisible, onClose }: FeatureFlagDebugPanelProps) {
-  // Disable debug panel in production
-  if (process.env.NODE_ENV === 'production') {
-    return null;
-  }
   const [flags, setFlags] = useState({
     enhancedWeatherWidget: false,
     improvedSurveyFlow: false,
@@ -66,7 +62,8 @@ export default function FeatureFlagDebugPanel({ isVisible, onClose }: FeatureFla
     });
   };
 
-  if (!isVisible) return null;
+  // Disable debug panel in production or when not visible
+  if (process.env.NODE_ENV === 'production' || !isVisible) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
