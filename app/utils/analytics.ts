@@ -47,7 +47,7 @@ export const analytics = {
     experienceLevel: string;
     name?: string;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       const activeFlags = getActiveFeatureFlags();
       
       window.gtag('event', 'survey_completed', {
@@ -77,7 +77,7 @@ export const analytics = {
 
   // Survey step tracking
   trackSurveyStep: (stepNumber: number, stepName: string, timeSpent?: number) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'survey_step_completed', {
         event_category: 'engagement',
         event_label: `survey_step_${stepNumber}`,
@@ -92,7 +92,7 @@ export const analytics = {
 
   // Survey abandonment tracking
   trackSurveyAbandoned: (stepNumber: number, timeSpent: number) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'survey_abandoned', {
         event_category: 'engagement',
         event_label: `abandoned_at_step_${stepNumber}`,
@@ -111,7 +111,7 @@ export const analytics = {
     temperature: number;
     rideType: string;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'schedule_printed', {
         event_category: 'feature_usage',
         event_label: 'nutrition_schedule_print',
@@ -132,7 +132,7 @@ export const analytics = {
     cached: boolean;
     location: string;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'weather_data_loaded', {
         event_category: 'feature_usage',
         event_label: 'weather_integration_success',
@@ -153,7 +153,7 @@ export const analytics = {
     hasWeather: boolean;
     hasProfile: boolean;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'ride_started', {
         event_category: 'engagement',
         event_label: 'cycling_session_start',
@@ -173,7 +173,7 @@ export const analytics = {
     type: string;
     rideProgress: number;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'fuel_alert_completed', {
         event_category: 'engagement',
         event_label: 'nutrition_timing_followed',
@@ -192,7 +192,7 @@ export const analytics = {
     elevationGain: number;
     estimatedTime: number;
   }) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'gpx_file_uploaded', {
         event_category: 'feature_usage',
         event_label: 'route_analysis_used',
@@ -207,7 +207,7 @@ export const analytics = {
 
   // Feature engagement tracking
   trackFeatureUsage: (feature: string, action: string, value?: string | number) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'feature_used', {
         event_category: 'feature_usage',
         event_label: `${feature}_${action}`,
@@ -222,7 +222,7 @@ export const analytics = {
 
   // User journey tracking
   trackUserJourney: (journeyStep: string, metadata?: Record<string, unknown>) => {
-    if (canTrack()) {
+    if (canTrack() && window.gtag) {
       window.gtag('event', 'user_journey', {
         event_category: 'user_flow',
         event_label: journeyStep,
