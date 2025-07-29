@@ -368,14 +368,17 @@ export default function CyclingNutritionApp() {
     if (!printWindow) return;
 
     // Calculate ride details
-    const riderName = nutritionProfile?.name || 'Cyclist';
+    const riderName = nutritionProfile?.name || 'Fuel Schedule';
     const totalDistanceMiles = rideType === 'miles' ? rideMiles : 
                               rideType === 'kilometers' ? (rideKilometers * 0.621371) :
                               routeData ? (routeData.distance * 0.621371) : 
                               (getEffectiveRideTime() / 60 * 14); // Assume 14mph average
     
-    const estimatedHours = Math.round((getEffectiveRideTime() / 60) * 10) / 10;
-    const totalFluidML = Math.round(estimatedHours * 600); // ~600ml per hour
+    const totalMinutes = getEffectiveRideTime();
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const durationString = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}` : `${minutes}m`;
+    const totalFluidML = Math.round((totalMinutes / 60) * 600); // ~600ml per hour
     const totalCarbsG = fuelSchedule.filter(a => a.type === 'carbs').length * 15; // ~15g per gel
 
     // Generate timeline rows based on fuel schedule
@@ -387,7 +390,7 @@ export default function CyclingNutritionApp() {
           <div class="time">0'</div>
           <div class="nutrition">
               <div class="bottle">
-                  <div class="bottle-liquid heed-liquid level-100"></div>
+                  <div class="bottle-liquid sports-liquid level-100"></div>
               </div>
               <div class="bottle">
                   <div class="bottle-liquid water-liquid level-100"></div>
@@ -409,7 +412,7 @@ export default function CyclingNutritionApp() {
         currentWaterLevel = Math.max(10, Math.round((1 - timeProgress * 0.7) * 100));
         
         // Determine bottle level classes
-        const heedClass = Math.round(currentHeedLevel / 10) * 10;
+        const sportsClass = Math.round(currentHeedLevel / 10) * 10;
         const waterClass = Math.round(currentWaterLevel / 10) * 10;
         
         // Format time
@@ -422,7 +425,7 @@ export default function CyclingNutritionApp() {
               <div class="time">${timeStr}</div>
               <div class="nutrition">
                   <div class="bottle">
-                      <div class="bottle-liquid heed-liquid level-${heedClass}"></div>
+                      <div class="bottle-liquid sports-liquid level-${sportsClass}"></div>
                   </div>
                   <div class="bottle">
                       <div class="bottle-liquid water-liquid level-${waterClass}"></div>
@@ -521,7 +524,7 @@ export default function CyclingNutritionApp() {
               border: 1px solid #333;
           }
           
-          .legend-heed {
+          .legend-sports {
               background: linear-gradient(180deg, #FF8C00 0%, #FF6600 100%);
           }
           
@@ -596,7 +599,7 @@ export default function CyclingNutritionApp() {
               transition: height 0.3s ease;
           }
           
-          .heed-liquid {
+          .sports-liquid {
               background: linear-gradient(180deg, #FF8C00 0%, #FF6600 100%);
           }
           
@@ -669,11 +672,11 @@ export default function CyclingNutritionApp() {
       <div class="nutrition-chart">
           <div class="header">
               <div class="rider-name">${riderName}</div>
-              <div class="distance">${Math.round(totalDistanceMiles)}-Mile Ride (~${estimatedHours} hours)</div>
+              <div class="distance">${Math.round(totalDistanceMiles)}-Mile Ride (~${durationString})</div>
               <div class="bottle-legend">
                   <div class="legend-item">
-                      <div class="legend-bottle legend-heed"></div>
-                      <span>HEED (950ml)</span>
+                      <div class="legend-bottle legend-sports"></div>
+                      <span>Sports Drink (950ml)</span>
                   </div>
                   <div class="legend-item">
                       <div class="legend-bottle legend-water"></div>
@@ -689,7 +692,7 @@ export default function CyclingNutritionApp() {
           ${timelineRows}
           
           <div class="finish">
-              FINISH (${estimatedHours}h)
+              FINISH (${durationString})
           </div>
           
           <div class="note">
