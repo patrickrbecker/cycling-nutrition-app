@@ -346,8 +346,10 @@ export default function CyclingNutritionApp() {
     loadProfile();
   }, [loadFromSecureStorage]);
 
-  // Debug panel keyboard shortcut (Ctrl+Shift+F)
+  // Debug panel keyboard shortcut (Ctrl+Shift+F) - disabled in production
   useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'F') {
         event.preventDefault();
