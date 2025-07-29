@@ -1579,6 +1579,98 @@ export default function CyclingNutritionApp() {
         )}
         </div>
       </main>
+
+      {/* SEO FAQ Section */}
+      <section className="bg-gradient-to-br from-slate-900 to-slate-800 py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-3xl font-bold text-center mb-12 text-white">
+            Cycling Nutrition FAQ - Expert Answers
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                How much should I eat during a cycling ride?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                For rides longer than 60-90 minutes, aim for <strong>30-60g of carbohydrates per hour</strong>. 
+                Start fueling early, around 20-30 minutes into your ride, and continue every 15-30 minutes. 
+                Our calculator provides personalized recommendations based on your intensity and weather conditions.
+              </p>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                How much water should I drink while cycling?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                Aim for <strong>500-750ml (16-24oz) of fluid per hour</strong> during cycling. 
+                In hot weather or intense efforts, you may need up to 1000ml per hour. 
+                Include electrolytes for rides over 1 hour to replace sodium lost through sweat.
+              </p>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                When should I start fueling during a bike ride?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                Start fueling <strong>within the first 20-30 minutes</strong> of your ride, before you feel hungry or low on energy. 
+                Early fueling prevents bonking and maintains steady energy levels throughout your ride. 
+                Never wait until you&apos;re already feeling weak.
+              </p>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                What&apos;s the best cycling nutrition for long rides?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                For rides over 2 hours, combine <strong>easily digestible carbs</strong> (gels, sports drinks) 
+                with electrolytes and some real food. Our planner adjusts recommendations based on ride duration, 
+                weather conditions, and your personal sweat rate for optimal performance.
+              </p>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                How do I prevent bonking during cycling?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                Prevent bonking by <strong>starting nutrition early and consistently</strong>. 
+                Eat 2-3 hours before riding, begin fueling within 30 minutes, and maintain 
+                30-60g carbs per hour. Our weather-adjusted calculator ensures you never run out of energy.
+              </p>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-white">
+                What electrolytes do I need for cycling?
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                Focus on <strong>sodium (200-500mg/hour)</strong> as the primary electrolyte lost in sweat. 
+                Potassium and magnesium are also important for longer rides. Hot weather increases sodium needs. 
+                Our calculator adjusts electrolyte timing based on temperature and your sweat rate.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <h3 className="text-2xl font-bold mb-4 text-white">
+              Ready to Optimize Your Cycling Nutrition?
+            </h3>
+            <p className="text-gray-300 mb-6 text-lg">
+              Join 10,000+ cyclists using our free nutrition calculator for better performance
+            </p>
+            <a 
+              href="/survey"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition-colors text-lg text-center"
+            >
+              Get Your Free Nutrition Plan
+            </a>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </>
   );

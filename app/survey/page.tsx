@@ -303,14 +303,14 @@ export default function NutritionSurvey() {
   return (
     <>
       <Head>
-        <title>Create Your Personalized Cycling Nutrition Profile | Cycling Fuel Planner</title>
-        <meta name="description" content="Create a personalized nutrition profile for optimal cycling performance. Answer 7 quick questions about your sweat rate, intensity, and preferences to get custom fuel timing recommendations." />
-        <meta name="keywords" content="cycling nutrition profile, personalized cycling nutrition, cycling fuel assessment, sports nutrition survey, cycling performance optimization" />
-        <meta property="og:title" content="Create Your Personalized Cycling Nutrition Profile" />
-        <meta property="og:description" content="Answer 7 quick questions to get personalized cycling nutrition recommendations based on your unique needs and preferences." />
+        <title>Free Cycling Nutrition Assessment | Personalized Fuel Plan in 7 Questions</title>
+        <meta name="description" content="🚴‍♂️ FREE 2-minute cycling nutrition assessment! Answer 7 questions about sweat rate, intensity & preferences. Get personalized fuel timing & hydration plan instantly. Start now!" />
+        <meta name="keywords" content="cycling nutrition assessment, free cycling nutrition test, personalized cycling fuel plan, cycling nutrition quiz, bike nutrition calculator, cycling hydration assessment, endurance nutrition survey, cycling performance test" />
+        <meta property="og:title" content="Free Cycling Nutrition Assessment | Personalized Fuel Plan in 7 Questions" />
+        <meta property="og:description" content="🚴‍♂️ FREE 2-minute cycling nutrition assessment! Get personalized fuel timing & hydration plan based on your unique needs. Used by 10,000+ cyclists." />
         <meta property="og:url" content="https://cycling-nutrition-app.vercel.app/survey" />
-        <meta name="twitter:title" content="Create Your Personalized Cycling Nutrition Profile" />
-        <meta name="twitter:description" content="Get custom cycling nutrition recommendations in just 7 quick questions." />
+        <meta name="twitter:title" content="Free Cycling Nutrition Assessment | Personalized Fuel Plan" />
+        <meta name="twitter:description" content="🚴‍♂️ FREE 2-minute assessment for personalized cycling nutrition. Get custom fuel timing & hydration plan instantly!" />
         <link rel="canonical" href="https://cycling-nutrition-app.vercel.app/survey" />
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">

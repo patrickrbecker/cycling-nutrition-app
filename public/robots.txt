@@ -4,13 +4,26 @@ Allow: /
 # Sitemap
 Sitemap: https://cycling-nutrition-app.vercel.app/sitemap.xml
 
-# Important pages
+# Important pages for cycling nutrition
 Allow: /
 Allow: /survey
+Allow: /terms
+Allow: /privacy
 
-# Block development files
+# Block development and API files
 Disallow: /_next/
 Disallow: /api/
+Disallow: /_vercel/
+Disallow: /favicon.ico
 
 # Crawl-delay for better server performance
 Crawl-delay: 1
+
+# Special instructions for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
