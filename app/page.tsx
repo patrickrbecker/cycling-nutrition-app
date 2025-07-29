@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Zap, Droplets, Timer, AlertTriangle, RotateCcw, Upload, MapPin } from 'lucide-react';
 import Script from 'next/script';
 import Footer from './components/Footer';
+import { analytics } from './utils/analytics';
 
 interface FuelAlert {
   time: number; // minutes
@@ -354,6 +355,13 @@ export default function CyclingNutritionApp() {
     if (saved) {
       setNutritionProfile(saved);
     }
+
+    // Track page load and initial user state
+    analytics.trackUserJourney('homepage_loaded', {
+      has_stored_profile: !!saved,
+      device_type: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+      referrer: document.referrer || 'direct'
+    });
   }, [loadFromSecureStorage]);
 
   // Reset nutrition profile
@@ -364,6 +372,16 @@ export default function CyclingNutritionApp() {
 
   // Generate printable fuel schedule for handlebars using your exact HTML structure
   const printFuelSchedule = () => {
+    // Track print schedule usage
+    analytics.trackSchedulePrint({
+      distance: rideType === 'miles' ? rideMiles : 
+                rideType === 'kilometers' ? rideKilometers : 
+                (getEffectiveRideTime() / 60 * 14),
+      duration: getEffectiveRideTime(),
+      temperature: currentTemp,
+      rideType: rideType
+    });
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -890,6 +908,14 @@ export default function CyclingNutritionApp() {
       setWindDirection(data.windDirection);
       setUvIndex(data.uvIndex);
       setWeatherDescription(data.description);
+
+      // Track successful weather data loading
+      analytics.trackWeatherLoaded({
+        zipCode: zip,
+        temperature: data.temperature,
+        cached: data.cached || false,
+        location: data.location
+      });
       
       // Show cache/fallback status
       if (data.cached && data.stale) {
@@ -947,10 +973,31 @@ export default function CyclingNutritionApp() {
   };
 
   const markCompleted = (time: number) => {
+    // Find the alert being completed
+    const alert = fuelSchedule.find(a => a.time === time);
+    if (alert) {
+      const rideProgress = (elapsedTime / getEffectiveRideTime()) * 100;
+      
+      // Track fuel alert completion
+      analytics.trackFuelAlertCompleted({
+        time: time,
+        type: alert.type,
+        rideProgress: rideProgress
+      });
+    }
+    
     setCompletedAlerts(prev => new Set([...prev, time]));
   };
 
   const startRide = () => {
+    // Track ride start with configuration
+    analytics.trackRideStarted({
+      type: rideType,
+      duration: getEffectiveRideTime(),
+      hasWeather: !!locationName,
+      hasProfile: !!nutritionProfile
+    });
+
     setIsRiding(true);
     setElapsedTime(0);
     setCompletedAlerts(new Set());

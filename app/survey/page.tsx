@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, User, Droplets, Zap, AlertCircle, Coffee, Target } from 'lucide-react';
 import Head from 'next/head';
 import Footer from '../components/Footer';
+import { analytics } from '../utils/analytics';
 
 interface SurveyData {
   weight: number;
@@ -32,11 +33,52 @@ export default function NutritionSurvey() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [surveyData, setSurveyData] = useState<SurveyData>(INITIAL_DATA);
+  const [stepStartTime, setStepStartTime] = useState<number>(Date.now());
+
+  // Track survey page load
+  useEffect(() => {
+    analytics.trackUserJourney('survey_started', {
+      device_type: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+      referrer: document.referrer || 'direct'
+    });
+    setStepStartTime(Date.now());
+  }, []);
+
+  // Track step changes
+  useEffect(() => {
+    if (currentStep > 0) {
+      const timeSpent = Math.round((Date.now() - stepStartTime) / 1000);
+      analytics.trackSurveyStep(currentStep, getStepName(currentStep - 1), timeSpent);
+    }
+    setStepStartTime(Date.now());
+  }, [currentStep, stepStartTime]);
+
+  const getStepName = (step: number): string => {
+    const stepNames = [
+      'personal_info',
+      'sweat_rate', 
+      'ride_intensity',
+      'gi_sensitivity',
+      'previous_issues',
+      'fuel_preferences',
+      'experience_level'
+    ];
+    return stepNames[step] || `step_${step}`;
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Track survey completion
+      analytics.trackSurveyCompleted({
+        weight: surveyData.weight,
+        sweatRate: surveyData.sweatRate,
+        intensity: surveyData.intensity,
+        experienceLevel: surveyData.experienceLevel,
+        name: surveyData.name
+      });
+
       // Save survey data securely and redirect to main app
       try {
         const jsonString = JSON.stringify(surveyData);
@@ -63,9 +105,25 @@ export default function NutritionSurvey() {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
+      // Track survey abandonment when going back to homepage
+      const timeSpent = Math.round((Date.now() - stepStartTime) / 1000);
+      analytics.trackSurveyAbandoned(currentStep, timeSpent);
       router.push('/');
     }
   };
+
+  // Track abandonment on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentStep < 6) { // 7 steps total (0-6), so incomplete if < 6
+        const timeSpent = Math.round((Date.now() - stepStartTime) / 1000);
+        analytics.trackSurveyAbandoned(currentStep, timeSpent);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentStep, stepStartTime]);
 
   const handleArrayToggle = (field: keyof SurveyData, value: string) => {
     setSurveyData(prev => ({
