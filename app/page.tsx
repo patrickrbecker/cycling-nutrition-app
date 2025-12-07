@@ -1737,15 +1737,16 @@ export default function CyclingNutritionApp() {
                 How much should I eat during a cycling ride?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                For rides longer than 60-90 minutes, aim for <strong>30-60g of carbohydrates per hour</strong>. 
-                Start fueling early, around 20-30 minutes into your ride, and continue every 15-30 minutes. 
-                Our calculator provides personalized recommendations based on your intensity and weather conditions.
+                <strong>It depends on intensity and duration:</strong> Easy/casual rides (Zone 1-2) need 0-30g/hour starting at 75+ minutes.
+                Moderate rides (Zone 3) need 25-60g/hour starting at 60 minutes.
+                Hard rides (Zone 4-5) need 50-70g/hour starting at 45 minutes.
+                Rides under 60 minutes typically need zero carbs - your glycogen stores are sufficient!
                 {advancedNutritionRecommendations && (
                   <>
                     <br /><br />
-                    <strong className="text-yellow-300">Advanced Tip:</strong> For rides over 3 hours, 
-                    consider multi-transportable carbs (glucose + fructose) for enhanced absorption rates 
-                    up to 90g/hour. Your gut can be trained to handle higher amounts through practice.
+                    <strong className="text-yellow-300">Advanced Tip:</strong> Elite athletes doing 3+ hour high-intensity efforts
+                    can utilize up to 90-120g/hour with trained guts and multi-transportable carbs (glucose + fructose).
+                    Recreational riders rarely need more than 60g/hour.
                   </>
                 )}
               </p>
@@ -1756,9 +1757,10 @@ export default function CyclingNutritionApp() {
                 How much water should I drink while cycling?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                Aim for <strong>500-750ml (16-24oz) of fluid per hour</strong> during cycling. 
-                In hot weather or intense efforts, you may need up to 1000ml per hour. 
-                Include electrolytes for rides over 1 hour to replace sodium lost through sweat.
+                Aim for <strong>500-750ml (16-24oz) of fluid per hour</strong> during cycling.
+                In hot weather or intense efforts, you may need up to 1000ml per hour.
+                Plain water is fine for rides under 90 minutes. Add electrolytes for longer rides (90+ min)
+                or when it&apos;s hot (>75°F) and you&apos;re sweating heavily.
               </p>
             </div>
 
@@ -1767,9 +1769,10 @@ export default function CyclingNutritionApp() {
                 When should I start fueling during a bike ride?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                Start fueling <strong>within the first 20-30 minutes</strong> of your ride, before you feel hungry or low on energy. 
-                Early fueling prevents bonking and maintains steady energy levels throughout your ride. 
-                Never wait until you&apos;re already feeling weak.
+                <strong>It depends on your ride intensity:</strong> Casual/easy rides start fueling at 75+ minutes.
+                Moderate tempo rides start at 60 minutes. Hard/intense rides start at 45 minutes.
+                For rides under 60 minutes at any intensity, you typically don&apos;t need any fuel - just water.
+                Your body has sufficient glycogen stores for shorter efforts!
               </p>
             </div>
 
@@ -1778,9 +1781,10 @@ export default function CyclingNutritionApp() {
                 What&apos;s the best cycling nutrition for long rides?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                For rides over 2 hours, combine <strong>easily digestible carbs</strong> (gels, sports drinks) 
-                with electrolytes and some real food. Our planner adjusts recommendations based on ride duration, 
-                weather conditions, and your personal sweat rate for optimal performance.
+                <strong>Intensity matters more than duration!</strong> A 3-hour easy ride needs far less fuel (20-30g/hour)
+                than a 2-hour hard effort (60-70g/hour). Use easily digestible carbs (gels, sports drinks) for quick energy.
+                Add electrolytes only for rides 90+ minutes in warm weather. Our planner adjusts for intensity, duration,
+                and weather conditions.
               </p>
             </div>
 
@@ -1789,9 +1793,10 @@ export default function CyclingNutritionApp() {
                 How do I prevent bonking during cycling?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                Prevent bonking by <strong>starting nutrition early and consistently</strong>. 
-                Eat 2-3 hours before riding, begin fueling within 30 minutes, and maintain 
-                30-60g carbs per hour. Our weather-adjusted calculator ensures you never run out of energy.
+                Prevent bonking by <strong>fueling based on your ride intensity and duration</strong>.
+                Eat 2-3 hours before riding. For casual rides, start fueling at 75+ minutes. For hard efforts,
+                start at 45-60 minutes. Match your carb intake to intensity: 20-30g/hour for easy rides,
+                up to 70g/hour for hard efforts. Our calculator provides evidence-based recommendations.
               </p>
             </div>
 
@@ -1800,9 +1805,10 @@ export default function CyclingNutritionApp() {
                 What electrolytes do I need for cycling?
               </h3>
               <p className="text-gray-300 leading-relaxed">
-                Focus on <strong>sodium (200-500mg/hour)</strong> as the primary electrolyte lost in sweat. 
-                Potassium and magnesium are also important for longer rides. Hot weather increases sodium needs. 
-                Our calculator adjusts electrolyte timing based on temperature and your sweat rate.
+                Focus on <strong>sodium (300-500mg/hour)</strong> as the primary electrolyte lost in sweat.
+                You typically only need electrolytes for rides over 90 minutes, especially in hot weather (>75°F)
+                or if you&apos;re a heavy sweater. Shorter rides or cool conditions? Plain water is fine!
+                Our calculator adjusts electrolyte timing based on duration, temperature, and your sweat rate.
               </p>
             </div>
           </div>
