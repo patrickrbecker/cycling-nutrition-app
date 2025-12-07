@@ -1760,7 +1760,7 @@ export default function CyclingNutritionApp() {
                 Aim for <strong>500-750ml (16-24oz) of fluid per hour</strong> during cycling.
                 In hot weather or intense efforts, you may need up to 1000ml per hour.
                 Plain water is fine for rides under 90 minutes. Add electrolytes for longer rides (90+ min)
-                or when it&apos;s hot (>75°F) and you&apos;re sweating heavily.
+                or when it&apos;s hot (&gt;75°F) and you&apos;re sweating heavily.
               </p>
             </div>
 
@@ -1806,7 +1806,7 @@ export default function CyclingNutritionApp() {
               </h3>
               <p className="text-gray-300 leading-relaxed">
                 Focus on <strong>sodium (300-500mg/hour)</strong> as the primary electrolyte lost in sweat.
-                You typically only need electrolytes for rides over 90 minutes, especially in hot weather (>75°F)
+                You typically only need electrolytes for rides over 90 minutes, especially in hot weather (&gt;75°F)
                 or if you&apos;re a heavy sweater. Shorter rides or cool conditions? Plain water is fine!
                 Our calculator adjusts electrolyte timing based on duration, temperature, and your sweat rate.
               </p>
