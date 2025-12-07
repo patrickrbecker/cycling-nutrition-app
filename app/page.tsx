@@ -50,6 +50,7 @@ export default function CyclingNutritionApp() {
   const [rideMiles, setRideMiles] = useState<number>(20); // miles
   const [rideKilometers, setRideKilometers] = useState<number>(32); // kilometers
   const [rideType, setRideType] = useState<'time' | 'miles' | 'kilometers'>('time');
+  const [rideIntensity, setRideIntensity] = useState<'casual' | 'moderate' | 'hard'>('casual');
   const [isRiding, setIsRiding] = useState(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [fuelSchedule, setFuelSchedule] = useState<FuelAlert[]>([]);
@@ -728,82 +729,105 @@ export default function CyclingNutritionApp() {
     };
   };
 
-  // Generate personalized fueling schedule
+  // Generate evidence-based fueling schedule
   const generateSchedule = useCallback((durationMinutes: number) => {
     const schedule: FuelAlert[] = [];
-    
-    // Personalized carb timing based on profile
-    let carbInterval = 25; // default
-    let startTime = 20; // default
-    let carbAmount = '10-15g carbs';
-    let elevationMultiplier = 1.0;
 
-    // Calculate elevation-based adjustments
-    if (routeData) {
-      // Increase carb needs based on elevation gain
-      const elevationFactor = Math.min(routeData.elevationGain / 1000, 0.5); // Up to 50% increase for 1000m+
-      elevationMultiplier = 1 + elevationFactor;
-      
-      // Adjust timing for routes with significant climbing
-      if (routeData.elevationGain > 300) {
-        carbInterval = Math.max(15, carbInterval - 5); // More frequent for hilly routes
-        carbAmount = elevationMultiplier > 1.2 ? '15-20g carbs' : '12-18g carbs';
+    // STEP 1: Check if ANY fueling is needed
+    if (durationMinutes < 60) {
+      // No fueling needed for rides under 60 minutes
+      return schedule; // Return empty schedule
+    }
+
+    // STEP 2: Determine carb intake rate based on intensity + duration
+    let carbRate = 0; // g/hour
+    let startTime: number | null = null;
+    let carbInterval = 0; // minutes between carb intakes
+
+    if (rideIntensity === 'casual') {
+      // Zone 2 - mostly fat-fueled
+      if (durationMinutes < 90) {
+        carbRate = 0;
+        startTime = null;
+      } else if (durationMinutes < 150) {
+        carbRate = 20; // 20g/hour
+        startTime = 75;
+        carbInterval = 60; // Every 60 minutes
+      } else {
+        carbRate = 30; // 30g/hour
+        startTime = 75;
+        carbInterval = 50; // Every 50 minutes (slightly more frequent for long rides)
+      }
+    } else if (rideIntensity === 'moderate') {
+      // Zone 3 - balanced fat/carb
+      if (durationMinutes < 75) {
+        carbRate = 0;
+        startTime = null;
+      } else if (durationMinutes < 90) {
+        carbRate = 25; // 25g/hour
+        startTime = 60;
+        carbInterval = 60;
+      } else if (durationMinutes < 150) {
+        carbRate = 45; // 45g/hour
+        startTime = 60;
+        carbInterval = 35; // ~40g per intake
+      } else {
+        carbRate = 60; // 60g/hour
+        startTime = 60;
+        carbInterval = 25; // ~25g per intake
+      }
+    } else if (rideIntensity === 'hard') {
+      // Zone 4-5 - high carb oxidation
+      if (durationMinutes < 60) {
+        carbRate = 0;
+        startTime = null;
+      } else if (durationMinutes < 90) {
+        carbRate = 50; // 50g/hour
+        startTime = 45;
+        carbInterval = 30; // ~25g per intake
+      } else {
+        carbRate = 70; // 70g/hour
+        startTime = 45;
+        carbInterval = 20; // ~23g per intake
       }
     }
 
-    if (nutritionProfile) {
-      // Adjust based on GI sensitivity
-      if (nutritionProfile.giSensitivity === 'sensitive') {
-        carbInterval = 30; // less frequent for sensitive stomachs
-        startTime = 15; // start earlier with smaller amounts
-        carbAmount = elevationMultiplier > 1.2 ? '10-15g carbs' : '8-12g carbs';
-      } else if (nutritionProfile.giSensitivity === 'tolerant') {
-        carbInterval = 20; // more frequent for iron stomachs
-        carbAmount = elevationMultiplier > 1.2 ? '18-25g carbs' : '15-20g carbs';
-      }
+    // STEP 3: Generate carb intake schedule
+    if (carbRate > 0 && startTime !== null) {
+      let currentTime = startTime;
+      const carbPerIntake = Math.round(carbRate * (carbInterval / 60));
 
-      // Adjust based on intensity
-      if (nutritionProfile.intensity === 'hard') {
-        carbInterval = Math.max(15, carbInterval - 5); // more frequent for high intensity
-      } else if (nutritionProfile.intensity === 'easy') {
-        carbInterval += 10; // less frequent for easy rides
+      while (currentTime < durationMinutes) {
+        schedule.push({
+          time: currentTime,
+          type: 'carbs',
+          amount: `${carbPerIntake}g (gel or sports drink)`,
+          priority: 'normal'
+        });
+        currentTime += carbInterval;
       }
     }
 
-    // Generate carb schedule
-    for (let time = startTime; time < durationMinutes; time += carbInterval) {
-      const fuelType = nutritionProfile?.preferredFuels?.length && nutritionProfile.preferredFuels.length > 0 
-        ? `(${nutritionProfile.preferredFuels[0].toLowerCase()})` 
-        : '(½ gel or 8oz sports drink)';
-      
-      schedule.push({
-        time,
-        type: 'carbs',
-        amount: `${carbAmount} ${fuelType}`,
-        priority: 'normal'
-      });
-    }
-
-    // Add pre-climb fueling alerts for major climbs
-    if (routeData && routeData.climbs.length > 0) {
+    // Add pre-climb fueling alerts for major climbs (if hard/moderate intensity)
+    if (routeData && routeData.climbs.length > 0 && rideIntensity !== 'casual') {
       const avgSpeed = routeData.distance / (durationMinutes / 60); // km/h
-      
+
       routeData.climbs.forEach(climb => {
         if (climb.elevationGain > 100) { // Only for significant climbs
           const climbStartTime = Math.round((climb.startDistance / avgSpeed) * 60);
           const preFuelTime = Math.max(5, climbStartTime - 15); // 15 minutes before climb
-          
-          // Only add if not too close to existing alerts
+
+          // Only add if not too close to existing alerts and within ride duration
           const nearbyAlert = schedule.find(alert => Math.abs(alert.time - preFuelTime) < 10);
           if (!nearbyAlert && preFuelTime < durationMinutes) {
-            const elevationDisplay = unitSystem === 'US' 
+            const elevationDisplay = unitSystem === 'US'
               ? `+${Math.round(climb.elevationGain * 3.28084)}ft`
               : `+${Math.round(climb.elevationGain)}m`;
-            
+
             schedule.push({
               time: preFuelTime,
               type: 'carbs',
-              amount: `Extra carbs before climb (${elevationDisplay} elevation)`,
+              amount: `20-25g before climb (${elevationDisplay})`,
               priority: 'critical'
             });
           }
@@ -811,42 +835,48 @@ export default function CyclingNutritionApp() {
       });
     }
 
-    // Enhanced electrolyte schedule based on sweat rate, temperature, and elevation
-    const needsElectrolytes = currentTemp > 80 || 
-      (nutritionProfile?.sweatRate === 'heavy') ||
-      (nutritionProfile?.sweatRate === 'moderate' && currentTemp > 75) ||
-      (routeData && routeData.elevationGain > 500); // Extra electrolytes for high elevation gain
+    // STEP 4: Determine electrolyte needs (evidence-based thresholds)
+    let needsElectrolytes = false;
+    let electrolyteRate = 0; // mg sodium per hour
+    let electrolyteInterval = 0; // minutes between electrolyte intake
 
+    // Electrolytes only needed for rides 60+ minutes with heat/sweat
+    if (durationMinutes >= 90) {
+      if (currentTemp > 80 || nutritionProfile?.sweatRate === 'heavy') {
+        needsElectrolytes = true;
+        electrolyteRate = 500;
+        electrolyteInterval = 60;
+      } else if (currentTemp > 75 || nutritionProfile?.sweatRate === 'moderate') {
+        needsElectrolytes = true;
+        electrolyteRate = 300;
+        electrolyteInterval = 75;
+      }
+    } else if (durationMinutes >= 60 && durationMinutes < 90) {
+      // Only for hot conditions on shorter rides
+      if (currentTemp > 85 || nutritionProfile?.sweatRate === 'heavy') {
+        needsElectrolytes = true;
+        electrolyteRate = 400;
+        electrolyteInterval = 60;
+      }
+    }
+
+    // STEP 5: Generate electrolyte schedule
     if (needsElectrolytes) {
-      let electrolyteInterval = 60;
-      let sodiumAmount = '200-400mg sodium';
+      let currentTime = 60; // Start electrolytes at 60 minutes
 
-      // Adjust for elevation (climbing increases sweat rate)
-      if (routeData && routeData.elevationGain > 500) {
-        electrolyteInterval = Math.max(45, electrolyteInterval - 15);
-        sodiumAmount = elevationMultiplier > 1.3 ? '350-550mg sodium' : '250-450mg sodium';
-      }
-
-      if (nutritionProfile?.sweatRate === 'heavy') {
-        electrolyteInterval = 45;
-        sodiumAmount = elevationMultiplier > 1.2 ? '400-600mg sodium' : '300-500mg sodium';
-      } else if (nutritionProfile?.sweatRate === 'light') {
-        electrolyteInterval = 90;
-        sodiumAmount = '150-300mg sodium';
-      }
-
-      for (let time = 45; time < durationMinutes; time += electrolyteInterval) {
+      while (currentTime < durationMinutes) {
         schedule.push({
-          time,
+          time: currentTime,
           type: 'electrolytes',
-          amount: `${sodiumAmount} (electrolyte tab/chew)`,
+          amount: `${electrolyteRate}mg sodium (tab or sports drink)`,
           priority: 'normal'
         });
+        currentTime += electrolyteInterval;
       }
     }
 
     return schedule.sort((a, b) => a.time - b.time);
-  }, [currentTemp, nutritionProfile, routeData, unitSystem]);
+  }, [currentTemp, nutritionProfile, routeData, unitSystem, rideIntensity]);
 
   // Timer functionality
   useEffect(() => {
@@ -1088,14 +1118,55 @@ export default function CyclingNutritionApp() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">
+                    Ride Intensity
+                  </label>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setRideIntensity('casual')}
+                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideIntensity === 'casual'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      Casual (Zone 2)
+                    </button>
+                    <button
+                      onClick={() => setRideIntensity('moderate')}
+                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideIntensity === 'moderate'
+                          ? 'bg-yellow-600 text-white'
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      Moderate (Zone 3)
+                    </button>
+                    <button
+                      onClick={() => setRideIntensity('hard')}
+                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        rideIntensity === 'hard'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-white/20 text-blue-200 hover:bg-white/30'
+                      }`}
+                    >
+                      Hard (Zone 4-5)
+                    </button>
+                  </div>
+                  <p className="text-sm text-blue-200 mb-4">
+                    {rideIntensity === 'casual' && '🚴 Easy pace, conversational - mostly fat-fueled'}
+                    {rideIntensity === 'moderate' && '💪 Tempo pace, can talk but not chat - balanced fuel'}
+                    {rideIntensity === 'hard' && '🔥 High intensity, intervals/racing - high carb needs'}
+                  </p>
+
+                  <label className="block text-sm font-medium mb-2">
                     Ride Planning Method
                   </label>
                   <div className="flex gap-2 mb-4">
                     <button
                       onClick={() => setRideType('time')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        rideType === 'time' 
-                          ? 'bg-blue-600 text-white' 
+                        rideType === 'time'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-white/20 text-blue-200 hover:bg-white/30'
                       }`}
                     >
@@ -1104,8 +1175,8 @@ export default function CyclingNutritionApp() {
                     <button
                       onClick={() => setRideType('miles')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        rideType === 'miles' 
-                          ? 'bg-blue-600 text-white' 
+                        rideType === 'miles'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-white/20 text-blue-200 hover:bg-white/30'
                       }`}
                     >
@@ -1114,15 +1185,15 @@ export default function CyclingNutritionApp() {
                     <button
                       onClick={() => setRideType('kilometers')}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        rideType === 'kilometers' 
-                          ? 'bg-blue-600 text-white' 
+                        rideType === 'kilometers'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-white/20 text-blue-200 hover:bg-white/30'
                       }`}
                     >
                       By Kilometers
                     </button>
                   </div>
-                  
+
                   {rideType === 'time' ? (
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -1490,24 +1561,52 @@ export default function CyclingNutritionApp() {
                 </button>
               </div>
               <div className="space-y-3">
-                {fuelSchedule.map((alert, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                    <div className="w-16 text-center">
-                      <Clock className="w-4 h-4 mx-auto mb-1" />
-                      <span className="text-sm font-mono">{formatTime(alert.time)}</span>
+                {fuelSchedule.length === 0 ? (
+                  <div className="p-6 bg-green-500/20 border border-green-500/30 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-lg font-semibold text-green-300">No Fueling Needed!</h4>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        {alert.type === 'carbs' ? (
-                          <Zap className="w-4 h-4 text-yellow-400" />
-                        ) : (
-                          <Droplets className="w-4 h-4 text-blue-400" />
-                        )}
-                        <span>{alert.amount}</span>
-                      </div>
+                    <p className="text-green-200">
+                      {(() => {
+                        const duration = getDurationMinutes();
+                        if (duration < 60) {
+                          return "Your glycogen stores are sufficient for rides under 60 minutes. Just bring water and enjoy the ride!";
+                        } else if (rideIntensity === 'casual' && duration < 90) {
+                          return "For easy-paced rides under 90 minutes, your body can fuel itself from fat stores. Water is all you need!";
+                        } else {
+                          return "Based on your ride intensity and duration, minimal fueling is needed. Listen to your body!";
+                        }
+                      })()}
+                    </p>
+                    <div className="mt-4 p-3 bg-white/10 rounded">
+                      <p className="text-sm text-blue-200">
+                        💧 <strong>Hydration:</strong> Drink water every 15-20 minutes (8-12 oz/hour)
+                      </p>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  fuelSchedule.map((alert, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                      <div className="w-16 text-center">
+                        <Clock className="w-4 h-4 mx-auto mb-1" />
+                        <span className="text-sm font-mono">{formatTime(alert.time)}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {alert.type === 'carbs' ? (
+                            <Zap className="w-4 h-4 text-yellow-400" />
+                          ) : (
+                            <Droplets className="w-4 h-4 text-blue-400" />
+                          )}
+                          <span>{alert.amount}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
