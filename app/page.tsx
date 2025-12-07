@@ -1571,7 +1571,9 @@ export default function CyclingNutritionApp() {
                     </div>
                     <p className="text-green-200">
                       {(() => {
-                        const duration = getDurationMinutes();
+                        const duration = rideType === 'time' ? rideTime :
+                                        rideType === 'miles' ? milesToTime(rideMiles) :
+                                        kilometersToTime(rideKilometers);
                         if (duration < 60) {
                           return "Your glycogen stores are sufficient for rides under 60 minutes. Just bring water and enjoy the ride!";
                         } else if (rideIntensity === 'casual' && duration < 90) {
