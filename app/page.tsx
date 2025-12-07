@@ -1129,7 +1129,7 @@ export default function CyclingNutritionApp() {
                           : 'bg-white/20 text-blue-200 hover:bg-white/30'
                       }`}
                     >
-                      Casual (Zone 2)
+                      Casual (Zone 1/2)
                     </button>
                     <button
                       onClick={() => setRideIntensity('moderate')}
